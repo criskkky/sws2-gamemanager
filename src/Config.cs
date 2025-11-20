@@ -1,4 +1,3 @@
-
 using SwiftlyS2.Shared.Plugins;
 using SwiftlyS2.Shared.Misc;
 using SwiftlyS2.Shared.GameEventDefinitions;
@@ -143,12 +142,20 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         // Desregistrar si ya existe o registrar según configuración
         if (_radioHookGuid.HasValue)
         {
-            Core.GameEvent.Unhook(_radioHookGuid.Value);
+            Core.Command.UnhookClientCommand(_radioHookGuid.Value);
             _radioHookGuid = null;
         }
         if (_config?.BlockRadio == true)
         {
-            _radioHookGuid = Core.GameEvent.HookPost<EventPlayerRadio>(@event => HookResult.Stop);
+            _radioHookGuid = Core.Command.HookClientCommand((playerId, commandLine) =>
+            {
+                var commandName = commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
+                if (Helper.RadioArray.Contains(commandName))
+                {
+                    return HookResult.Stop;
+                }
+                return HookResult.Continue;
+            });
         }
 
         // Desregistrar si ya existe o registrar según configuración
@@ -161,26 +168,26 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         {
             _nameChangerHookGuid = Core.GameEvent.HookPost<EventPlayerChangename>(@event =>
             {
-                // 1 = Solo advertir, 2 = Transferir a SPEC, 3 = Kickear
-                if (_config?.BlockNameChanger == 1)
+                Core.Scheduler.NextTick(() =>
                 {
-                    // Lógica de advertencia: mensaje solo al jugador
-                    Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "No cambies tu nombre!");
-                    return HookResult.Stop;
-                }
-                else if (_config?.BlockNameChanger == 2)
-                {
-                    Core.PlayerManager.GetPlayer(@event.UserId).ChangeTeam(Team.Spectator);
-                    Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "Has sido transferido a espectador por cambiar tu nombre.");
-                    return HookResult.Stop;
-                }
-                else if (_config?.BlockNameChanger == 3)
-                {
-                    // Lógica para kickear
-                    Core.PlayerManager.GetPlayer(@event.UserId).Kick("No se permite cambiar el nombre", ENetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED);
-                    return HookResult.Stop;
-                }
-                return HookResult.Continue;
+                    // 1 = Solo advertir, 2 = Transferir a SPEC, 3 = Kickear
+                    if (_config?.BlockNameChanger == 1)
+                    {
+                        // Lógica de advertencia: mensaje solo al jugador
+                        Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "No cambies tu nombre!");
+                    }
+                    else if (_config?.BlockNameChanger == 2)
+                    {
+                        Core.PlayerManager.GetPlayer(@event.UserId).ChangeTeam(Team.Spectator);
+                        Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "Has sido transferido a espectador por cambiar tu nombre.");
+                    }
+                    else if (_config?.BlockNameChanger == 3)
+                    {
+                        // Lógica para kickear
+                        Core.PlayerManager.GetPlayer(@event.UserId).Kick("No se permite cambiar el nombre", ENetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED);
+                    }
+                });
+                return HookResult.Stop;
             });
         }
 
@@ -194,17 +201,31 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         {
             _killFeedHookGuid = Core.GameEvent.HookPre<EventPlayerDeath>(@event =>
             {
+                var attacker = Core.PlayerManager.GetPlayer(@event.Attacker);
+                if (attacker == null || !attacker.IsValid) return HookResult.Continue;
+
                 if (_config?.HideKillFeed == 1)
                 {
-                    var attacker = Core.PlayerManager.GetPlayer(@event.Attacker);
-                    if (attacker == null || !attacker.IsValid) return HookResult.Continue;
-
                     @event.DontBroadcast = true;
-                    return HookResult.Stop;
+                    return HookResult.Continue;
                 }
                 else if (_config?.HideKillFeed == 2)
                 {
-                    Core.GameEvent.Fire<EventPlayerDeath>(e => e.Attacker = @event.Attacker);
+                    if (!attacker.IsFakeClient)
+                    {
+                        Core.GameEvent.FireToPlayer<EventPlayerDeath>(attacker.PlayerID, ev =>
+                        {
+                            ev.UserId = @event.UserId;
+                            ev.Attacker = @event.Attacker;
+                            ev.Weapon = @event.Weapon;
+                            ev.Headshot = @event.Headshot;
+                            ev.Assister = @event.Assister;
+                            ev.Penetrated = @event.Penetrated;
+                            ev.Dominated = @event.Dominated;
+                            ev.Revenge = @event.Revenge;
+                        });
+                    }
+                    return HookResult.Stop;
                 }
                 return HookResult.Continue;
             });
@@ -220,8 +241,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         {
             _bloodHookGuid = Core.NetMessage.HookClientMessage<CMsgTEBloodStream>((msg, playerId) =>
             {
-                if (_config?.HideBlood == true) return HookResult.Stop;
-                return HookResult.Continue;
+                return HookResult.Stop;
             });
         }
 
@@ -235,8 +255,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         {
             _sparksHookGuid = Core.NetMessage.HookClientMessage<CMsgTESparks>((msg, playerId) =>
             {
-                if (_config?.HideHeadshotSparks == true) return HookResult.Stop;
-                return HookResult.Continue;
+                return HookResult.Stop;
             });
         }
 
@@ -648,7 +667,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
             { "player_ping", cfg => cfg?.BlockPing == true }
         };
 
-        _commandService?.HookClientCommand((playerId, commandLine) =>
+        Core.Command.HookClientCommand((playerId, commandLine) =>
         {
             var commandName = commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
             if (commandBlockers.TryGetValue(commandName, out var shouldBlock) && shouldBlock(_config))
@@ -661,7 +680,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         // Hook para comandos bloqueados específicos
         if (_config?.BlockedCommands.Count > 0)
         {
-            _commandService?.HookClientCommand((playerId, commandLine) =>
+            Core.Command.HookClientCommand((playerId, commandLine) =>
             {
                 var commandName = commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
                 if (_config.BlockedCommands.Contains(commandName))

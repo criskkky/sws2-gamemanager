@@ -3,7 +3,6 @@ using SwiftlyS2.Shared;
 using SwiftlyS2.Shared.GameEvents;
 using SwiftlyS2.Shared.Misc;
 using SwiftlyS2.Shared.GameEventDefinitions;
-using SwiftlyS2.Shared.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
@@ -13,7 +12,6 @@ namespace GameManager;
 
 public partial class GameManager : BasePlugin
 {
-  private readonly ICommandService? _commandService = null;
   private ServiceProvider? _serviceProvider;
   private IOptionsMonitor<ConfigModel>? _configMonitor;
 
@@ -51,8 +49,11 @@ public partial class GameManager : BasePlugin
     _configMonitor.OnChange(newConfig =>
     {
         _config = newConfig;
-        // Opcional: log de recarga
-        Core.Logger.LogInformation("Configuración recargada en caliente.");
+        // Recargar hooks, comandos nativos y comandos de cliente al cambiar config
+        Core.Logger.LogInformation("Configuración recargada en caliente. Recargando hooks y comandos...");
+        RegisterNeededHooks();
+        ExecuteNativeCommands();
+        CheckClientCommands();
     });
 
     RegisterNeededHooks();
