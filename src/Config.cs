@@ -271,32 +271,28 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         {
             _corpsesHookGuid = Core.GameEvent.HookPost<EventPlayerDeath>(@event =>
             {
-                Core.Scheduler.NextTick(() =>
+                var player = Core.PlayerManager.GetPlayer(@event.UserId);
+                if (player != null && player.IsValid)
                 {
-                    var player = Core.PlayerManager.GetPlayer(@event.UserId);
-                    if (player != null && player.IsValid)
+                    var playerPawn = player.PlayerPawn;
+                    if (playerPawn != null)
                     {
-                        if (_config?.HideCorpses == 1)
+                        Core.Scheduler.NextTick(() =>
                         {
-                            var playerPawn = player.PlayerPawn;
-                            if (playerPawn != null)
+                            if (_config?.HideCorpses == 1)
                             {
                                 var currentColor = playerPawn.Render;
                                 playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)0);
-                                // playerPawn.ForceUpdated();
+                                playerPawn.RenderUpdated();
                             }
-                        }
-                        if (_config?.HideCorpses == 2) // Fade out
-                        {
-                            var convar = Core.ConVar.Find<int>("spec_freeze_deathanim_time");
-                            float duration = convar != null ? convar.Value : 0.8f; // seconds
-                            float interval = 0.1f; // 100 ms = 0.1 seconds
-                            int steps = (int)Math.Ceiling(duration / interval);
-                            float stepAlpha = 255f / steps; // Decremento por step
-
-                            var playerPawn = player.PlayerPawn;
-                            if (playerPawn != null)
+                            if (_config?.HideCorpses == 2) // Fade out
                             {
+                                var convar = Core.ConVar.Find<int>("spec_freeze_deathanim_time");
+                                float duration = convar != null ? convar.Value : 0.8f; // seconds
+                                float interval = 0.1f; // 100 ms = 0.1 seconds
+                                int steps = (int)Math.Ceiling(duration / interval);
+                                float stepAlpha = 255f / steps; // Decremento por step
+
                                 if (!playerPawn.IsValid) return;
 
                                 // Obtener el color original
@@ -312,7 +308,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
 
                                     // Asignar el color modificado (solo alpha cambia)
                                     playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)currentAlpha);
-                                    // playerPawn.ForceUpdated();
+                                    playerPawn.RenderUpdated();
 
                                     // Si alpha > 0, reprogramar el siguiente fade
                                     if (currentAlpha > 0)
@@ -324,9 +320,9 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
                                 // Iniciar el primer delay
                                 Core.Scheduler.DelayBySeconds(interval, fadeAction);
                             }
-                        }
+                        });
                     }
-                });
+                }
                 return HookResult.Continue;
             });
         }
@@ -337,7 +333,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
             Core.GameEvent.Unhook(_legsHookGuid.Value);
             _legsHookGuid = null;
         }
-        if (_config?.HideLegs == true)
+        if (_config?.HideLegs == true || _config?.HideLegs == false)
         {
             _legsHookGuid = Core.GameEvent.HookPost<EventPlayerSpawn>(@event =>
             {
@@ -350,14 +346,14 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
                         // Obtener el color actual y restaurar solo el alpha a 254 (para ocultar piernas)
                         var currentColor = playerPawn.Render;
                         playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)254);
-                        // playerPawn.ForceUpdated();
+                        playerPawn.RenderUpdated();
                     }
                     else if (playerPawn != null && _config != null && _config.HideLegs == false)
                     {
                         // Restaurar visibilidad completa
                         var currentColor = playerPawn.Render;
                         playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)255);
-                        // playerPawn.ForceUpdated();
+                        playerPawn.RenderUpdated();
                     }
                 }
                 return HookResult.Continue;
