@@ -11,7 +11,7 @@ namespace GameManager;
 
 public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
 {
-  // Model created from what I consider useful configuration options, PR are welcome to add more!
+  // Model created from what I consider useful configuration options, PRs are welcome to add more!
   public class ConfigModel
   {
     // === Blockers ===
@@ -20,7 +20,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     public bool BlockGrenadesRadio { get; set; } = false;
     public bool BlockChatWheel { get; set; } = false;
     public bool BlockPing { get; set; } = false;
-    public byte BlockNameChanger { get; set; } = 0; // 0 = No, 1 = Just Warn, 2 = Transfer to SPEC, 3 = Kick
     public List<string> BlockedCommands { get; set; } = []; // Case Sensitive
     public string BlockedCommandsWhitelist { get; set; } = ""; // Flags
 
@@ -33,9 +32,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     public byte HideTeammateHeadtags_Distance { get; set; } = 0; // 50, 100, 150, 250
     public byte HideCorpses { get; set; } = 0; // 0 = No, 1 = Instantly, 2 = Fade out
     public bool HideLegs { get; set; } = false;
-    public byte HideChatHUD { get; set; } = 0; // 0 = No, 1 = Yes, 2 = Yes with delay
-    public byte HideChatHUD_DelaySeconds { get; set; } = 5; // 5, 10, 15, 30
-    public bool HideWeaponsHUD { get; set; } = false;
 
     // === Disable ===
     public bool DisableFallDamage { get; set; } = false;
@@ -103,13 +99,10 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
 
   // --- GUIDs for Hooks ---
   private Guid? _radioHookGuid;
-  private Guid? _nameChangerHookGuid;
   private Guid? _deathEventHookGuid;
   private Guid? _bloodHookGuid;
   private Guid? _sparksHookGuid;
   private Guid? _legsHookGuid;
-  private Guid? _chatHudHookGuid;
-  private Guid? _weaponHudHookGuid;
   private Guid? _aimPunchHookGuid;
   private Guid? _toggleAimPunchCommandGuid;
   private bool _aimPunchEnabled;
@@ -123,7 +116,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
   private Guid? _ignorePlantingBombMessagesHookGuid;
   private Guid? _ignoreDefusingBombMessagesHookGuid;
   private Guid? _ignoreDisconnectMessagesHookGuid;
-
 
   private void RegisterNeededHooks()
   {
@@ -143,39 +135,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
           return HookResult.Stop;
         }
         return HookResult.Continue;
-      });
-    }
-
-    // --- Handle Hook Creation: Name Changer ---
-    if (_nameChangerHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_nameChangerHookGuid.Value);
-      _nameChangerHookGuid = null;
-    }
-    if (_config?.BlockNameChanger > 0)
-    {
-      _nameChangerHookGuid = Core.GameEvent.HookPost<EventPlayerChangename>(@event =>
-      {
-        Core.Scheduler.NextTick(() =>
-              {
-                // 1 = Solo advertir, 2 = Transferir a SPEC, 3 = Kickear
-                if (_config?.BlockNameChanger == 1)
-                {
-                  // Lógica de advertencia: mensaje solo al jugador
-                  Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "No cambies tu nombre!");
-                }
-                else if (_config?.BlockNameChanger == 2)
-                {
-                  Core.PlayerManager.GetPlayer(@event.UserId).ChangeTeam(Team.Spectator);
-                  Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "Has sido transferido a espectador por cambiar tu nombre.");
-                }
-                else if (_config?.BlockNameChanger == 3)
-                {
-                  // Lógica para kickear
-                  Core.PlayerManager.GetPlayer(@event.UserId).Kick("No se permite cambiar el nombre", ENetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED);
-                }
-              });
-        return HookResult.Stop;
       });
     }
 
@@ -335,44 +294,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
             playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)255);
             playerPawn.RenderUpdated();
           }
-        }
-        return HookResult.Continue;
-      });
-    }
-
-    // --- Handle Hook Creation: HUD ---
-    if (_chatHudHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_chatHudHookGuid.Value);
-      _chatHudHookGuid = null;
-    }
-    if (_config?.HideChatHUD > 0)
-    {
-      _chatHudHookGuid = Core.NetMessage.HookClientMessage<CUserMessageHudText>((msg, playerId) =>
-      {
-        if (_config?.HideChatHUD > 0)
-        {
-          HideInHUD(Core.PlayerManager.GetPlayer(playerId), 128);
-          return HookResult.Stop;
-        }
-        return HookResult.Continue;
-      });
-    }
-
-    // --- Handle Hook Creation: Weapons HUD ---
-    if (_weaponHudHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_weaponHudHookGuid.Value);
-      _weaponHudHookGuid = null;
-    }
-    if (_config?.HideWeaponsHUD == true)
-    {
-      _weaponHudHookGuid = Core.NetMessage.HookClientMessage<CUserMessageHudMsg>((msg, playerId) =>
-      {
-        if (_config?.HideWeaponsHUD == true)
-        {
-          HideInHUD(Core.PlayerManager.GetPlayer(playerId), 64);
-          return HookResult.Stop;
         }
         return HookResult.Continue;
       });
@@ -581,21 +502,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
   }
 
-  private static void HideInHUD(IPlayer player, uint msgId)
-  {
-    if (player == null || !player.IsValid) return;
-
-    var PlayerPawn = player.PlayerPawn;
-    if (PlayerPawn == null || !PlayerPawn.IsValid) return;
-
-    if (msgId != 0)
-    {
-      ref uint hud = ref PlayerPawn.HideHUD;
-      hud = msgId;
-      PlayerPawn.HideHUDUpdated();
-    }
-  }
-
   private void CheckClientCommands()
   {
     // Lista de predicados para verificar si un comando debe bloquearse
@@ -693,65 +599,65 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       Core.Scheduler.NextTick(() =>
       {
         Core.Scheduler.DelayBySeconds(cfg.AutoClean_Timer, () =>
+        {
+          var selectedWeapons = cfg.AutoClean_TheseDroppedWeaponsOnly
+                    .Select(w => w.Trim().ToLower())
+                    .ToList();
+
+          var allWeaponsToClean = new HashSet<string>();
+
+          if (selectedWeapons.Contains("any") || selectedWeapons.Count == 0)
+          {
+            foreach (var category in WeaponCategories.Values)
+            {
+              allWeaponsToClean.UnionWith(category);
+            }
+          }
+          else
+          {
+            foreach (var weaponKey in selectedWeapons)
+            {
+              if (WeaponCategories.ContainsKey(weaponKey.ToUpper()))
               {
-                var selectedWeapons = cfg.AutoClean_TheseDroppedWeaponsOnly
-                          .Select(w => w.Trim().ToLower())
-                          .ToList();
+                allWeaponsToClean.UnionWith(WeaponCategories[weaponKey.ToUpper()]);
+              }
+              else
+              {
+                allWeaponsToClean.Add(weaponKey.ToLower());
+              }
+            }
+          }
 
-                var allWeaponsToClean = new HashSet<string>();
+          var droppedWeapons = new List<CEntityInstance>();
 
-                if (selectedWeapons.Contains("any") || selectedWeapons.Count == 0)
-                {
-                  foreach (var category in WeaponCategories.Values)
-                  {
-                    allWeaponsToClean.UnionWith(category);
-                  }
-                }
-                else
-                {
-                  foreach (var weaponKey in selectedWeapons)
-                  {
-                    if (WeaponCategories.ContainsKey(weaponKey.ToUpper()))
-                    {
-                      allWeaponsToClean.UnionWith(WeaponCategories[weaponKey.ToUpper()]);
-                    }
-                    else
-                    {
-                      allWeaponsToClean.Add(weaponKey.ToLower());
-                    }
-                  }
-                }
+          foreach (var weaponClass in allWeaponsToClean)
+          {
+            var entities = Core.EntitySystem.GetAllEntities().Where(e => e.DesignerName == weaponClass);
+            foreach (var entity in entities)
+            {
+              if (entity != null && entity.IsValid) // Assuming dropped if no owner check available
+              {
+                droppedWeapons.Add(entity);
+              }
+            }
+          }
 
-                var droppedWeapons = new List<CEntityInstance>();
+          if (droppedWeapons.Count > cfg.AutoClean_MaxWeaponsOnGround)
+          {
+            int weaponsToRemove = droppedWeapons.Count - cfg.AutoClean_MaxWeaponsOnGround;
 
-                foreach (var weaponClass in allWeaponsToClean)
-                {
-                  var entities = Core.EntitySystem.GetAllEntities().Where(e => e.DesignerName == weaponClass);
-                  foreach (var entity in entities)
-                  {
-                    if (entity != null && entity.IsValid) // Assuming dropped if no owner check available
-                    {
-                      droppedWeapons.Add(entity);
-                    }
-                  }
-                }
+            for (int i = 0; i < weaponsToRemove && droppedWeapons.Count > 0; i++)
+            {
+              int weaponToRemoveIndex = droppedWeapons.Count == 1 ? 0 : Random.Shared.Next(0, droppedWeapons.Count);
 
-                if (droppedWeapons.Count > cfg.AutoClean_MaxWeaponsOnGround)
-                {
-                  int weaponsToRemove = droppedWeapons.Count - cfg.AutoClean_MaxWeaponsOnGround;
+              var weaponToRemove = droppedWeapons[weaponToRemoveIndex];
+              if (weaponToRemove == null || !weaponToRemove.IsValid) continue;
 
-                  for (int i = 0; i < weaponsToRemove && droppedWeapons.Count > 0; i++)
-                  {
-                    int weaponToRemoveIndex = droppedWeapons.Count == 1 ? 0 : Random.Shared.Next(0, droppedWeapons.Count);
-
-                    var weaponToRemove = droppedWeapons[weaponToRemoveIndex];
-                    if (weaponToRemove == null || !weaponToRemove.IsValid) continue;
-
-                    weaponToRemove.AcceptInput("Kill", "");
-                    droppedWeapons.RemoveAt(weaponToRemoveIndex);
-                  }
-                }
-              });
+              weaponToRemove.AcceptInput("Kill", "");
+              droppedWeapons.RemoveAt(weaponToRemoveIndex);
+            }
+          }
+        });
       });
     }
     if (cfg.AutoClean_Timer < 1 || cfg.AutoClean_Timer > 999)
