@@ -239,7 +239,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         }
         if (_config?.HideBlood == true)
         {
-            _bloodHookGuid = Core.NetMessage.HookServerMessage<CMsgTEBloodStream>((msg) =>
+            _bloodHookGuid = Core.NetMessage.HookServerMessage<CMsgTEWorldDecal>((msg) =>
             {   
                 Console.WriteLine("Blocking blood message");
                 msg.Recipients.RemoveAllPlayers();
@@ -255,7 +255,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         }
         if (_config?.HideHeadshotSparks == true)
         {
-            _sparksHookGuid = Core.NetMessage.HookServerMessage<CMsgTESparks>((msg) =>
+            _sparksHookGuid = Core.NetMessage.HookServerMessage<CMsgTEEffectDispatch>((msg) =>
             {
                 Console.WriteLine("Blocking headshot sparks message");
                 msg.Recipients.RemoveAllPlayers();
