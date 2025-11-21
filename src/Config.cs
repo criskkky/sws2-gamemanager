@@ -234,13 +234,15 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         // Desregistrar y registrar hook de sangre
         if (_bloodHookGuid.HasValue)
         {
-            Core.GameEvent.Unhook(_bloodHookGuid.Value);
+            Core.NetMessage.Unhook(_bloodHookGuid.Value);
             _bloodHookGuid = null;
         }
         if (_config?.HideBlood == true)
         {
-            _bloodHookGuid = Core.NetMessage.HookClientMessage<CMsgTEBloodStream>((msg, playerId) =>
-            {
+            _bloodHookGuid = Core.NetMessage.HookServerMessage<CMsgTEBloodStream>((msg) =>
+            {   
+                Console.WriteLine("Blocking blood message");
+                msg.Recipients.RemoveAllPlayers();
                 return HookResult.Stop;
             });
         }
@@ -248,13 +250,15 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         // Desregistrar y registrar hook de chispas headshot
         if (_sparksHookGuid.HasValue)
         {
-            Core.GameEvent.Unhook(_sparksHookGuid.Value);
+            Core.NetMessage.Unhook(_sparksHookGuid.Value);
             _sparksHookGuid = null;
         }
         if (_config?.HideHeadshotSparks == true)
         {
-            _sparksHookGuid = Core.NetMessage.HookClientMessage<CMsgTESparks>((msg, playerId) =>
+            _sparksHookGuid = Core.NetMessage.HookServerMessage<CMsgTESparks>((msg) =>
             {
+                Console.WriteLine("Blocking headshot sparks message");
+                msg.Recipients.RemoveAllPlayers();
                 return HookResult.Stop;
             });
         }
