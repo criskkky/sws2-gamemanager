@@ -31,7 +31,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         public bool HideHeadshotSparks { get; set; } = false;
         public byte HideTeammateHeadtags { get; set; } = 0; // 0 = No, 1 = Yes, 2 = Just behind walls, 3 = Disable by distance
         public byte HideTeammateHeadtags_Distance { get; set; } = 0; // 50, 100, 150, 250
-        public byte HideCorpses { get; set; } = 0; // 0 = No, 1 = Instantly, 2 = After X seconds
+        public byte HideCorpses { get; set; } = 0; // 0 = No, 1 = Instantly, 2 = Fade out, 3 = After X seconds
         public byte HideCorpses_DelaySeconds { get; set; } = 5; // 5, 10, 15, 30
         public bool HideLegs { get; set; } = false;
         public byte HideChatHUD { get; set; } = 0; // 0 = No, 1 = Yes, 2 = Yes with delay
@@ -287,7 +287,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
                             }
                             if (_config?.HideCorpses == 2) // Fade out
                             {
-                                var convar = Core.ConVar.Find<int>("spec_freeze_deathanim_time");
+                                var convar = Core.ConVar.Find<float>("spec_freeze_deathanim_time");
                                 float duration = convar != null ? convar.Value : 0.8f; // seconds
                                 float interval = 0.1f; // 100 ms = 0.1 seconds
                                 int steps = (int)Math.Ceiling(duration / interval);
