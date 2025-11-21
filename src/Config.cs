@@ -31,8 +31,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         public bool HideHeadshotSparks { get; set; } = false;
         public byte HideTeammateHeadtags { get; set; } = 0; // 0 = No, 1 = Yes, 2 = Just behind walls, 3 = Disable by distance
         public byte HideTeammateHeadtags_Distance { get; set; } = 0; // 50, 100, 150, 250
-        public byte HideCorpses { get; set; } = 0; // 0 = No, 1 = Instantly, 2 = Fade out, 3 = After X seconds
-        public byte HideCorpses_DelaySeconds { get; set; } = 5; // 5, 10, 15, 30
+        public byte HideCorpses { get; set; } = 0; // 0 = No, 1 = Instantly, 2 = Fade out
         public bool HideLegs { get; set; } = false;
         public byte HideChatHUD { get; set; } = 0; // 0 = No, 1 = Yes, 2 = Yes with delay
         public byte HideChatHUD_DelaySeconds { get; set; } = 5; // 5, 10, 15, 30
@@ -50,13 +49,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         public byte SoundsMuteMVPMusic { get; set; } = 0; // 0 = No, 1 = Yes, 2 = MVP + Round End Music
         public bool SoundsMuteFootsteps { get; set; } = false;
         public bool SoundsMuteJumpLand { get; set; } = false;
-        public byte SoundsMuteKnife { get; set; } = 0; // 0 = No, 1 = Yes, 2 = Only teammates
-        public List<uint> Sounds_MuteKnife_SoundeventHash { get; set; } = new List<uint>
-        {
-            427534867,
-            3475734633,
-            1769891506
-        };
 
         // === Default MSGS ===
         public bool IgnoreBombPlantedHUDMessages { get; set; } = false;
@@ -112,10 +104,9 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     // Guardar el Guid para poder desregistrar
     private Guid? _radioHookGuid;
     private Guid? _nameChangerHookGuid;
-    private Guid? _killFeedHookGuid;
+    private Guid? _deathEventHookGuid;
     private Guid? _bloodHookGuid;
     private Guid? _sparksHookGuid;
-    private Guid? _corpsesHookGuid;
     private Guid? _legsHookGuid;
     private Guid? _chatHudHookGuid;
     private Guid? _weaponHudHookGuid;
@@ -123,9 +114,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     private Guid? _toggleAimPunchCommandGuid;
     private bool _aimPunchEnabled;
     private Guid? _mvpMusicHookGuid;
-    private Guid? _knifeSoundHookGuid;
-    public Guid? _knifeSoundMessageHookGuid;
-    private HashSet<int> _playersToMuteKnifeSound = new();
     private Guid? _ignoreBombPlantedHUDMessagesHookGuid;
     private Guid? _ignoreTeammateAttackMessagesHookGuid;
     private Guid? _ignoreAwardsMoneyMessagesHookGuid;
@@ -192,18 +180,76 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         }
 
         // Desregistrar si ya existe o registrar según configuración
-        if (_killFeedHookGuid.HasValue)
+        if (_deathEventHookGuid.HasValue)
         {
-            Core.GameEvent.Unhook(_killFeedHookGuid.Value);
-            _killFeedHookGuid = null;
+            Core.GameEvent.Unhook(_deathEventHookGuid.Value);
+            _deathEventHookGuid = null;
         }
-        if (_config?.HideKillFeed > 0)
+        if (_config?.HideKillFeed > 0 || _config?.HideCorpses > 0)
         {
-            _killFeedHookGuid = Core.GameEvent.HookPre<EventPlayerDeath>(@event =>
+            _deathEventHookGuid = Core.GameEvent.HookPre<EventPlayerDeath>(@event =>
             {
                 var attacker = Core.PlayerManager.GetPlayer(@event.Attacker);
                 if (attacker == null || !attacker.IsValid) return HookResult.Continue;
 
+                // First handle corpses
+                if (_config?.HideCorpses > 0)
+                {
+                    var player = Core.PlayerManager.GetPlayer(@event.UserId);
+                    if (player != null && player.IsValid)
+                    {
+                        var playerPawn = player.PlayerPawn;
+                        if (playerPawn != null)
+                        {
+                            Core.Scheduler.NextTick(() =>
+                            {
+                                if (_config?.HideCorpses == 1)
+                                {
+                                    var currentColor = playerPawn.Render;
+                                    playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)0);
+                                    playerPawn.RenderUpdated();
+                                }
+                                if (_config?.HideCorpses == 2) // Fade out
+                                {
+                                    var convar = Core.ConVar.Find<float>("spec_freeze_deathanim_time");
+                                    float duration = convar != null ? convar.Value : 0.8f; // seconds
+                                    float interval = 0.1f; // 100 ms = 0.1 seconds
+                                    int steps = (int)Math.Ceiling(duration / interval);
+                                    float stepAlpha = 255f / steps; // Decremento por step
+
+                                    if (!playerPawn.IsValid) return;
+
+                                    // Obtener el color original
+                                    var currentColor = playerPawn.Render;
+                                    float currentAlpha = currentColor.A;
+
+                                    // Iniciar fade out recursivo con Delay
+                                    Action fadeAction = null!;
+                                    fadeAction = () =>
+                                    {
+                                        // Decrementar alpha
+                                        currentAlpha = Math.Max(0, currentAlpha - stepAlpha);
+
+                                        // Asignar el color modificado (solo alpha cambia)
+                                        playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)currentAlpha);
+                                        playerPawn.RenderUpdated();
+
+                                        // Si alpha > 0, reprogramar el siguiente fade
+                                        if (currentAlpha > 0)
+                                        {
+                                            Core.Scheduler.DelayBySeconds(interval, fadeAction);
+                                        }
+                                    };
+
+                                    // Iniciar el primer delay
+                                    Core.Scheduler.DelayBySeconds(interval, fadeAction);
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // Then handle killfeed
                 if (_config?.HideKillFeed == 1)
                 {
                     @event.DontBroadcast = true;
@@ -261,71 +307,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
             });
         }
 
-        // Desregistrar hook de cadáveres
-        if (_corpsesHookGuid.HasValue)
-        {
-            Core.GameEvent.Unhook(_corpsesHookGuid.Value);
-            _corpsesHookGuid = null;
-        }
-        if (_config?.HideCorpses > 0)
-        {
-            _corpsesHookGuid = Core.GameEvent.HookPost<EventPlayerDeath>(@event =>
-            {
-                var player = Core.PlayerManager.GetPlayer(@event.UserId);
-                if (player != null && player.IsValid)
-                {
-                    var playerPawn = player.PlayerPawn;
-                    if (playerPawn != null)
-                    {
-                        Core.Scheduler.NextTick(() =>
-                        {
-                            if (_config?.HideCorpses == 1)
-                            {
-                                var currentColor = playerPawn.Render;
-                                playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)0);
-                                playerPawn.RenderUpdated();
-                            }
-                            if (_config?.HideCorpses == 2) // Fade out
-                            {
-                                var convar = Core.ConVar.Find<float>("spec_freeze_deathanim_time");
-                                float duration = convar != null ? convar.Value : 0.8f; // seconds
-                                float interval = 0.1f; // 100 ms = 0.1 seconds
-                                int steps = (int)Math.Ceiling(duration / interval);
-                                float stepAlpha = 255f / steps; // Decremento por step
 
-                                if (!playerPawn.IsValid) return;
-
-                                // Obtener el color original
-                                var currentColor = playerPawn.Render;
-                                float currentAlpha = currentColor.A;
-
-                                // Iniciar fade out recursivo con Delay
-                                Action fadeAction = null!;
-                                fadeAction = () =>
-                                {
-                                    // Decrementar alpha
-                                    currentAlpha = Math.Max(0, currentAlpha - stepAlpha);
-
-                                    // Asignar el color modificado (solo alpha cambia)
-                                    playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)currentAlpha);
-                                    playerPawn.RenderUpdated();
-
-                                    // Si alpha > 0, reprogramar el siguiente fade
-                                    if (currentAlpha > 0)
-                                    {
-                                        Core.Scheduler.DelayBySeconds(interval, fadeAction);
-                                    }
-                                };
-
-                                // Iniciar el primer delay
-                                Core.Scheduler.DelayBySeconds(interval, fadeAction);
-                            }
-                        });
-                    }
-                }
-                return HookResult.Continue;
-            });
-        }
 
         // Desregistrar hook de spawn
         if (_legsHookGuid.HasValue)
@@ -465,50 +447,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
             });
         }
 
-        // Desregistrar y registrar hook de knife sounds
-        if (_knifeSoundHookGuid.HasValue)
-        {
-            Core.GameEvent.Unhook(_knifeSoundHookGuid.Value);
-            _knifeSoundHookGuid = null;
-        }
-        if (_config?.SoundsMuteKnife > 0)
-        {
-            _knifeSoundHookGuid = Core.GameEvent.HookPre<EventPlayerHurt>(@event =>
-            {
-                // Check if damage is from knife
-                if (@event.Weapon.Contains("knife"))
-                {
-                    // For SoundsMuteKnife == 1: mute all knife sounds
-                    // For == 2: mute only if attacker is teammate
-                    bool shouldMute = _config.SoundsMuteKnife == 1 ||
-                        (_config.SoundsMuteKnife == 2 && Core.PlayerManager.GetPlayer(@event.Attacker).Controller.TeamNum == Core.PlayerManager.GetPlayer(@event.UserId).Controller.TeamNum);
 
-                    if (shouldMute)
-                    {
-                        _playersToMuteKnifeSound.Add(@event.UserId);
-                    }
-                }
-                return HookResult.Continue;
-            });
-        }
-
-        // Desregistrar y registrar hook de knife sound messages
-        if (_knifeSoundMessageHookGuid.HasValue)
-        {
-            // Core.NetMessage.UnhookClientMessage(_knifeSoundMessageHookGuid.Value); // No unhook method
-            _knifeSoundMessageHookGuid = null;
-        }
-        if (_config?.SoundsMuteKnife > 0)
-        {
-            _knifeSoundMessageHookGuid = Core.NetMessage.HookClientMessage<CSVCMsg_Sounds>((msg, playerId) =>
-            {
-                if (_playersToMuteKnifeSound.Contains(playerId) && msg.Sounds.Any(sound => _config.Sounds_MuteKnife_SoundeventHash.Contains(sound.Guid)))
-                {
-                    return HookResult.Stop;
-                }
-                return HookResult.Continue;
-            });
-        }
 
         // Desregistrar y registrar hook de ignorar mensajes HUD de bomba plantada
         if (_ignoreBombPlantedHUDMessagesHookGuid.HasValue)
