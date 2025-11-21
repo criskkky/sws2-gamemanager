@@ -5,8 +5,8 @@ namespace GameManager;
 
 public static class Helper
 {
-    public static string[] RadioArray = [
-        "coverme",
+  public static string[] RadioArray = [
+      "coverme",
         "takepoint",
         "holdpos",
         "regroup",
@@ -35,9 +35,9 @@ public static class Helper
         "go_b",
         "needrop",
         "deathcry"
-    ];
-    public static string[] MoneyMessageArray = [
-        "#Player_Cash_Award_Kill_Teammate",
+  ];
+  public static string[] MoneyMessageArray = [
+      "#Player_Cash_Award_Kill_Teammate",
         "#Player_Cash_Award_Killed_VIP",
         "#Player_Cash_Award_Killed_Enemy_Generic",
         "#Player_Cash_Award_Killed_Enemy",
@@ -93,14 +93,14 @@ public static class Helper
         "#Team_Cash_Award_no_income_suicide",
         "#Team_Cash_Award_Generic",
         "#Team_Cash_Award_Custom"
-    ];
-    public static string[] SavedbyArray = [
-        "#Chat_SavePlayer_Savior",
+  ];
+  public static string[] SavedbyArray = [
+      "#Chat_SavePlayer_Savior",
         "#Chat_SavePlayer_Spectator",
         "#Chat_SavePlayer_Saved"
-    ];
-    public static string[] TeamWarningArray = [
-        "#Cstrike_TitlesTXT_Game_teammate_attack",
+  ];
+  public static string[] TeamWarningArray = [
+      "#Cstrike_TitlesTXT_Game_teammate_attack",
         "#Cstrike_TitlesTXT_Game_teammate_kills",
         "#Cstrike_TitlesTXT_Hint_careful_around_teammates",
         "#Cstrike_TitlesTXT_Hint_try_not_to_injure_teammates",
@@ -108,24 +108,24 @@ public static class Helper
         "#SFUI_Notice_Game_teammate_kills",
         "#SFUI_Notice_Hint_careful_around_teammates",
         "#SFUI_Notice_Killed_Teammate"
-    ];
-    public static string[] ChickenMessageArray = [
-        "#Pet_Killed"
-    ];
-    public static string[] DefusingBombMessageArray = [
-        "#Cstrike_TitlesTXT_Defusing_Bomb"
-    ];
+  ];
+  public static string[] ChickenMessageArray = [
+      "#Pet_Killed"
+  ];
+  public static string[] DefusingBombMessageArray = [
+      "#Cstrike_TitlesTXT_Defusing_Bomb"
+  ];
 
-    public static string[] PlantingBombMessageArray = [
-        "#Cstrike_TitlesTXT_Planting_Bomb"
-    ];
+  public static string[] PlantingBombMessageArray = [
+      "#Cstrike_TitlesTXT_Planting_Bomb"
+  ];
 
-    public static readonly Dictionary<string, string[]> WeaponCategories;
+  public static readonly Dictionary<string, string[]> WeaponCategories;
 
-    // Constructor Estático
-    static Helper()
-    {
-        WeaponCategories = new Dictionary<string, string[]>
+  // Constructor Estático
+  static Helper()
+  {
+    WeaponCategories = new Dictionary<string, string[]>
         {
             {"A", ["weapon_awp", "weapon_g3sg1", "weapon_scar20", "weapon_ssg08"]},
             {"B", ["weapon_ak47", "weapon_aug", "weapon_famas", "weapon_galilar", "weapon_m4a1_silencer", "weapon_m4a1", "weapon_sg556"]},
@@ -139,21 +139,21 @@ public static class Helper
             {"J", ["weapon_healthshot"]},
             {"K", ["weapon_knife", "weapon_knife_t"]}
         };
-        WeaponCategories["ANY"] = WeaponCategories.Values.SelectMany(x => x).ToArray();
-    }
+    WeaponCategories["ANY"] = WeaponCategories.Values.SelectMany(x => x).ToArray();
+  }
 
-    public static HookResult FilterMessageByParams(CUserMessageTextMsg msg, IEnumerable<string> filterStrings)
+  public static HookResult FilterMessageByParams(CUserMessageTextMsg msg, IEnumerable<string> filterStrings)
+  {
+    foreach (var param in msg.Param)
     {
-        foreach (var param in msg.Param)
+      foreach (var filter in filterStrings)
+      {
+        if (param.Contains(filter))
         {
-            foreach (var filter in filterStrings)
-            {
-                if (param.Contains(filter))
-                {
-                    return HookResult.Stop;
-                }
-            }
+          return HookResult.Stop;
         }
-        return HookResult.Continue;
+      }
     }
+    return HookResult.Continue;
+  }
 }

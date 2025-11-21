@@ -2,7 +2,7 @@ using SwiftlyS2.Shared;
 
 namespace GameManager;
 
-[PluginMetadata( 
+[PluginMetadata(
     Id = "GameManager",
     Version = "1.0.0",
     Name = "GameManager",
