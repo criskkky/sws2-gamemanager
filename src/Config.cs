@@ -101,7 +101,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
 
   private ConfigModel? _config;
 
-  // Guardar el Guid para poder desregistrar
+  // --- GUIDs for Hooks ---
   private Guid? _radioHookGuid;
   private Guid? _nameChangerHookGuid;
   private Guid? _deathEventHookGuid;
@@ -127,7 +127,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
 
   private void RegisterNeededHooks()
   {
-    // Desregistrar si ya existe o registrar según configuración
+    // --- Handle Hook Creation: Radio ---
     if (_radioHookGuid.HasValue)
     {
       Core.Command.UnhookClientCommand(_radioHookGuid.Value);
@@ -146,7 +146,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar si ya existe o registrar según configuración
+    // --- Handle Hook Creation: Name Changer ---
     if (_nameChangerHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_nameChangerHookGuid.Value);
@@ -159,27 +159,27 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         Core.Scheduler.NextTick(() =>
               {
                 // 1 = Solo advertir, 2 = Transferir a SPEC, 3 = Kickear
-            if (_config?.BlockNameChanger == 1)
-            {
+                if (_config?.BlockNameChanger == 1)
+                {
                   // Lógica de advertencia: mensaje solo al jugador
-              Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "No cambies tu nombre!");
-            }
-            else if (_config?.BlockNameChanger == 2)
-            {
-              Core.PlayerManager.GetPlayer(@event.UserId).ChangeTeam(Team.Spectator);
-              Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "Has sido transferido a espectador por cambiar tu nombre.");
-            }
-            else if (_config?.BlockNameChanger == 3)
-            {
+                  Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "No cambies tu nombre!");
+                }
+                else if (_config?.BlockNameChanger == 2)
+                {
+                  Core.PlayerManager.GetPlayer(@event.UserId).ChangeTeam(Team.Spectator);
+                  Core.PlayerManager.GetPlayer(@event.UserId).SendMessage(MessageType.Chat, "Has sido transferido a espectador por cambiar tu nombre.");
+                }
+                else if (_config?.BlockNameChanger == 3)
+                {
                   // Lógica para kickear
-              Core.PlayerManager.GetPlayer(@event.UserId).Kick("No se permite cambiar el nombre", ENetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED);
-            }
-          });
+                  Core.PlayerManager.GetPlayer(@event.UserId).Kick("No se permite cambiar el nombre", ENetworkDisconnectionReason.NETWORK_DISCONNECT_KICKED);
+                }
+              });
         return HookResult.Stop;
       });
     }
 
-    // Desregistrar si ya existe o registrar según configuración
+    // --- Handle Hook Creation: Death Event ---
     if (_deathEventHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_deathEventHookGuid.Value);
@@ -202,49 +202,49 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
             if (playerPawn != null)
             {
               Core.Scheduler.NextTick(() =>
-                    {
-                        if (_config?.HideCorpses == 1)
+              {
+                if (_config?.HideCorpses == 1)
+                {
+                  var currentColor = playerPawn.Render;
+                  playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)0);
+                  playerPawn.RenderUpdated();
+                }
+                if (_config?.HideCorpses == 2) // Fade out
+                {
+                  var convar = Core.ConVar.Find<float>("spec_freeze_deathanim_time");
+                  float duration = convar != null ? convar.Value : 0.8f; // seconds
+                  float interval = 0.1f; // 100 ms = 0.1 seconds
+                  int steps = (int)Math.Ceiling(duration / interval);
+                  float stepAlpha = 255f / steps; // Decremento por step
+
+                  if (!playerPawn.IsValid) return;
+
+                  // Obtener el color original
+                  var currentColor = playerPawn.Render;
+                  float currentAlpha = currentColor.A;
+
+                  // Iniciar fade out recursivo con Delay
+                  Action fadeAction = null!;
+                  fadeAction = () =>
                         {
-                          var currentColor = playerPawn.Render;
-                          playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)0);
+                          // Decrementar alpha
+                          currentAlpha = Math.Max(0, currentAlpha - stepAlpha);
+
+                          // Asignar el color modificado (solo alpha cambia)
+                          playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)currentAlpha);
                           playerPawn.RenderUpdated();
-                        }
-                        if (_config?.HideCorpses == 2) // Fade out
-                        {
-                          var convar = Core.ConVar.Find<float>("spec_freeze_deathanim_time");
-                          float duration = convar != null ? convar.Value : 0.8f; // seconds
-                          float interval = 0.1f; // 100 ms = 0.1 seconds
-                          int steps = (int)Math.Ceiling(duration / interval);
-                          float stepAlpha = 255f / steps; // Decremento por step
 
-                          if (!playerPawn.IsValid) return;
+                          // Si alpha > 0, reprogramar el siguiente fade
+                          if (currentAlpha > 0)
+                          {
+                            Core.Scheduler.DelayBySeconds(interval, fadeAction);
+                          }
+                        };
 
-                        // Obtener el color original
-                          var currentColor = playerPawn.Render;
-                          float currentAlpha = currentColor.A;
-
-                        // Iniciar fade out recursivo con Delay
-                          Action fadeAction = null!;
-                          fadeAction = () =>
-                                {
-                                  // Decrementar alpha
-                                currentAlpha = Math.Max(0, currentAlpha - stepAlpha);
-
-                                  // Asignar el color modificado (solo alpha cambia)
-                                playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)currentAlpha);
-                                playerPawn.RenderUpdated();
-
-                                  // Si alpha > 0, reprogramar el siguiente fade
-                                if (currentAlpha > 0)
-                                {
-                                  Core.Scheduler.DelayBySeconds(interval, fadeAction);
-                                }
-                              };
-
-                        // Iniciar el primer delay
-                          Core.Scheduler.DelayBySeconds(interval, fadeAction);
-                        }
-                      });
+                  // Iniciar el primer delay
+                  Core.Scheduler.DelayBySeconds(interval, fadeAction);
+                }
+              });
             }
           }
         }
@@ -260,16 +260,16 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
           if (!attacker.IsFakeClient)
           {
             Core.GameEvent.FireToPlayer<EventPlayerDeath>(attacker.PlayerID, ev =>
-                  {
-                    ev.UserId = @event.UserId;
-                    ev.Attacker = @event.Attacker;
-                    ev.Weapon = @event.Weapon;
-                    ev.Headshot = @event.Headshot;
-                    ev.Assister = @event.Assister;
-                    ev.Penetrated = @event.Penetrated;
-                    ev.Dominated = @event.Dominated;
-                    ev.Revenge = @event.Revenge;
-                  });
+            {
+              ev.UserId = @event.UserId;
+              ev.Attacker = @event.Attacker;
+              ev.Weapon = @event.Weapon;
+              ev.Headshot = @event.Headshot;
+              ev.Assister = @event.Assister;
+              ev.Penetrated = @event.Penetrated;
+              ev.Dominated = @event.Dominated;
+              ev.Revenge = @event.Revenge;
+            });
           }
           return HookResult.Stop;
         }
@@ -277,7 +277,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar hook de sangre
+    // --- Handle Hook Creation: Blood ---
     if (_bloodHookGuid.HasValue)
     {
       Core.NetMessage.Unhook(_bloodHookGuid.Value);
@@ -292,7 +292,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar hook de chispas headshot
+    // --- Handle Hook Creation: Headshot Sparks ---
     if (_sparksHookGuid.HasValue)
     {
       Core.NetMessage.Unhook(_sparksHookGuid.Value);
@@ -307,9 +307,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-
-
-    // Desregistrar hook de spawn
+    // --- Handle Hook Creation: Legs ---
     if (_legsHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_legsHookGuid.Value);
@@ -342,7 +340,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar hook de HUD
+    // --- Handle Hook Creation: HUD ---
     if (_chatHudHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_chatHudHookGuid.Value);
@@ -361,7 +359,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar hook de HUD de armas
+    // --- Handle Hook Creation: Weapons HUD ---
     if (_weaponHudHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_weaponHudHookGuid.Value);
@@ -380,7 +378,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar hook de Aim Punch
+    // --- Handle Hook Creation: Aim Punch ---
     if (_aimPunchHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_aimPunchHookGuid.Value);
@@ -407,7 +405,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar comando toggle aim punch
+    // --- Handle Command Creation: Toggle Aim Punch ---
     if (_toggleAimPunchCommandGuid.HasValue)
     {
       Core.Command.UnregisterCommand(_toggleAimPunchCommandGuid.Value);
@@ -423,7 +421,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar hook de MVPMusic
+    // --- Handle Hook Creation: MVPMusic ---
     if (_mvpMusicHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_mvpMusicHookGuid.Value);
@@ -447,9 +445,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-
-
-    // Desregistrar y registrar hook de ignorar mensajes HUD de bomba plantada
+    // --- Handle Hook Creation: Ignore Bomb Planted HUD Messages ---
     if (_ignoreBombPlantedHUDMessagesHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_ignoreBombPlantedHUDMessagesHookGuid.Value);
@@ -463,7 +459,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar 
+    // --- Handle Hook Creation: Ignore Teammate Attack Messages ---
     if (_ignoreTeammateAttackMessagesHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_ignoreTeammateAttackMessagesHookGuid.Value);
@@ -484,7 +480,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar
+    // --- Handle Hook Creation: Ignore Awards Money Messages ---
     if (_ignoreAwardsMoneyMessagesHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_ignoreAwardsMoneyMessagesHookGuid.Value);
@@ -498,7 +494,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar
+    // --- Handle Hook Creation: Ignore Player Saved You Messages ---
     if (_ignorePlayerSavedYouMessagesHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_ignorePlayerSavedYouMessagesHookGuid.Value);
@@ -512,7 +508,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar
+    // --- Handle Hook Creation: Ignore Chicken Killed Messages ---
     if (_ignoreChickenKilledMessagesHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_ignoreChickenKilledMessagesHookGuid.Value);
@@ -526,7 +522,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar
+    // --- Handle Hook Creation: Ignore Join Team Messages ---
     if (_ignoreJoinTeamMessagesHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_ignoreJoinTeamMessagesHookGuid.Value);
@@ -541,7 +537,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar
+    // --- Handle Hook Creation: Ignore Planting Bomb Messages ---
     if (_ignorePlantingBombMessagesHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_ignorePlantingBombMessagesHookGuid.Value);
@@ -555,7 +551,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar
+    // --- Handle Hook Creation: Ignore Defusing Bomb Messages ---
     if (_ignoreDefusingBombMessagesHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_ignoreDefusingBombMessagesHookGuid.Value);
@@ -569,7 +565,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       });
     }
 
-    // Desregistrar y registrar
+    // --- Handle Hook Creation: Ignore Disconnect Messages ---
     if (_ignoreDisconnectMessagesHookGuid.HasValue)
     {
       Core.GameEvent.Unhook(_ignoreDisconnectMessagesHookGuid.Value);
@@ -698,64 +694,64 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       {
         Core.Scheduler.DelayBySeconds(cfg.AutoClean_Timer, () =>
               {
-            var selectedWeapons = cfg.AutoClean_TheseDroppedWeaponsOnly
-                      .Select(w => w.Trim().ToLower())
-                      .ToList();
+                var selectedWeapons = cfg.AutoClean_TheseDroppedWeaponsOnly
+                          .Select(w => w.Trim().ToLower())
+                          .ToList();
 
-            var allWeaponsToClean = new HashSet<string>();
+                var allWeaponsToClean = new HashSet<string>();
 
-            if (selectedWeapons.Contains("any") || selectedWeapons.Count == 0)
-            {
-              foreach (var category in WeaponCategories.Values)
-              {
-                allWeaponsToClean.UnionWith(category);
-              }
-            }
-            else
-            {
-              foreach (var weaponKey in selectedWeapons)
-              {
-                if (WeaponCategories.ContainsKey(weaponKey.ToUpper()))
+                if (selectedWeapons.Contains("any") || selectedWeapons.Count == 0)
                 {
-                  allWeaponsToClean.UnionWith(WeaponCategories[weaponKey.ToUpper()]);
+                  foreach (var category in WeaponCategories.Values)
+                  {
+                    allWeaponsToClean.UnionWith(category);
+                  }
                 }
                 else
                 {
-                  allWeaponsToClean.Add(weaponKey.ToLower());
+                  foreach (var weaponKey in selectedWeapons)
+                  {
+                    if (WeaponCategories.ContainsKey(weaponKey.ToUpper()))
+                    {
+                      allWeaponsToClean.UnionWith(WeaponCategories[weaponKey.ToUpper()]);
+                    }
+                    else
+                    {
+                      allWeaponsToClean.Add(weaponKey.ToLower());
+                    }
+                  }
                 }
-              }
-            }
 
-            var droppedWeapons = new List<CEntityInstance>();
+                var droppedWeapons = new List<CEntityInstance>();
 
-            foreach (var weaponClass in allWeaponsToClean)
-            {
-              var entities = Core.EntitySystem.GetAllEntities().Where(e => e.DesignerName == weaponClass);
-              foreach (var entity in entities)
-              {
-                if (entity != null && entity.IsValid) // Assuming dropped if no owner check available
+                foreach (var weaponClass in allWeaponsToClean)
                 {
-                  droppedWeapons.Add(entity);
+                  var entities = Core.EntitySystem.GetAllEntities().Where(e => e.DesignerName == weaponClass);
+                  foreach (var entity in entities)
+                  {
+                    if (entity != null && entity.IsValid) // Assuming dropped if no owner check available
+                    {
+                      droppedWeapons.Add(entity);
+                    }
+                  }
                 }
-              }
-            }
 
-            if (droppedWeapons.Count > cfg.AutoClean_MaxWeaponsOnGround)
-            {
-              int weaponsToRemove = droppedWeapons.Count - cfg.AutoClean_MaxWeaponsOnGround;
+                if (droppedWeapons.Count > cfg.AutoClean_MaxWeaponsOnGround)
+                {
+                  int weaponsToRemove = droppedWeapons.Count - cfg.AutoClean_MaxWeaponsOnGround;
 
-              for (int i = 0; i < weaponsToRemove && droppedWeapons.Count > 0; i++)
-              {
-                int weaponToRemoveIndex = droppedWeapons.Count == 1 ? 0 : Random.Shared.Next(0, droppedWeapons.Count);
+                  for (int i = 0; i < weaponsToRemove && droppedWeapons.Count > 0; i++)
+                  {
+                    int weaponToRemoveIndex = droppedWeapons.Count == 1 ? 0 : Random.Shared.Next(0, droppedWeapons.Count);
 
-                var weaponToRemove = droppedWeapons[weaponToRemoveIndex];
-                if (weaponToRemove == null || !weaponToRemove.IsValid) continue;
+                    var weaponToRemove = droppedWeapons[weaponToRemoveIndex];
+                    if (weaponToRemove == null || !weaponToRemove.IsValid) continue;
 
-                weaponToRemove.AcceptInput("Kill", "");
-                droppedWeapons.RemoveAt(weaponToRemoveIndex);
-              }
-            }
-          });
+                    weaponToRemove.AcceptInput("Kill", "");
+                    droppedWeapons.RemoveAt(weaponToRemoveIndex);
+                  }
+                }
+              });
       });
     }
     if (cfg.AutoClean_Timer < 1 || cfg.AutoClean_Timer > 999)
