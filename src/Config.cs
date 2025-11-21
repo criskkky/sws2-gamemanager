@@ -240,7 +240,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         if (_config?.HideBlood == true)
         {
             _bloodHookGuid = Core.NetMessage.HookServerMessage<CMsgTEWorldDecal>((msg) =>
-            {   
+            {
                 msg.Recipients.RemoveAllPlayers();
                 return HookResult.Stop;
             });
@@ -278,7 +278,13 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
                     {
                         if (_config?.HideCorpses == 1)
                         {
-                            // Lógica para esconder cadáveres instantáneamente
+                            var playerPawn = player.PlayerPawn;
+                            if (playerPawn != null)
+                            {
+                                var currentColor = playerPawn.Render;
+                                playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)0);
+                                // playerPawn.ForceUpdated();
+                            }
                         }
                         if (_config?.HideCorpses == 2) // Fade out
                         {
@@ -291,12 +297,11 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
                             var playerPawn = player.PlayerPawn;
                             if (playerPawn != null)
                             {
-                                var PlayerPawnValue = playerPawn; // Ya es la instancia
-                                if (PlayerPawnValue == null || !PlayerPawnValue.IsValid) return;
+                                if (!playerPawn.IsValid) return;
 
                                 // Obtener el color original
-                                var originalColor = PlayerPawnValue.Render;
-                                float currentAlpha = originalColor.A;
+                                var currentColor = playerPawn.Render;
+                                float currentAlpha = currentColor.A;
 
                                 // Iniciar fade out recursivo con Delay
                                 Action fadeAction = null!;
@@ -306,8 +311,8 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
                                     currentAlpha = Math.Max(0, currentAlpha - stepAlpha);
 
                                     // Asignar el color modificado (solo alpha cambia)
-                                    PlayerPawnValue.Render = new Color(originalColor.R, originalColor.G, originalColor.B, (byte)currentAlpha);
-                                    // PlayerPawnValue.ForceUpdated();
+                                    playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)currentAlpha);
+                                    // playerPawn.ForceUpdated();
 
                                     // Si alpha > 0, reprogramar el siguiente fade
                                     if (currentAlpha > 0)
