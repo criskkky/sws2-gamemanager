@@ -602,36 +602,35 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
 
   private void CheckClientCommands()
   {
-    // Hook global para comandos de cliente usando ICommandService
-    var commandBlockers = new Dictionary<string, Func<ConfigModel?, bool>>
-        {
-            { "playerchatwheel", cfg => cfg?.BlockChatWheel == true },
-            { "player_ping", cfg => cfg?.BlockPing == true }
-        };
+    // Lista de predicados para verificar si un comando debe bloquearse
+    var commandBlockers = new List<Func<string, ConfigModel?, bool>>
+    {
+      (cmd, cfg) => cmd == "playerchatwheel" && cfg?.BlockChatWheel == true,
+      (cmd, cfg) => cmd == "player_ping" && cfg?.BlockPing == true,
+      (cmd, cfg) => cmd.StartsWith("+radialradio") && cfg?.BlockChatWheel == true
+    };
 
     Core.Command.HookClientCommand((playerId, commandLine) =>
     {
       var commandName = commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
-      if (commandBlockers.TryGetValue(commandName, out var shouldBlock) && shouldBlock(_config))
-      {
-        return HookResult.Stop;
-      }
-      return HookResult.Continue;
-    });
 
-    // Hook para comandos bloqueados específicos
-    if (_config?.BlockedCommands.Count > 0)
-    {
-      Core.Command.HookClientCommand((playerId, commandLine) =>
+      // Verificar todos los bloqueadores en la lista
+      foreach (var blocker in commandBlockers)
       {
-        var commandName = commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
-        if (_config.BlockedCommands.Contains(commandName))
+        if (blocker(commandName, _config))
         {
           return HookResult.Stop;
         }
-        return HookResult.Continue;
-      });
-    }
+      }
+
+      // Verificar comandos bloqueados personalizados
+      if (_config?.BlockedCommands.Contains(commandName) == true)
+      {
+        return HookResult.Stop;
+      }
+
+      return HookResult.Continue;
+    });
   }
 
   private void ExecuteNativeCommands()

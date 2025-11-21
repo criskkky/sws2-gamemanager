@@ -34,7 +34,11 @@ public static class Helper
         "go_a",
         "go_b",
         "needrop",
-        "deathcry"
+        "deathcry",
+        "radio",
+        "radio1",
+        "radio2",
+        "radio3"
   ];
   public static string[] MoneyMessageArray = [
       "#Player_Cash_Award_Kill_Teammate",
