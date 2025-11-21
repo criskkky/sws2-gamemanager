@@ -241,7 +241,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         {
             _bloodHookGuid = Core.NetMessage.HookServerMessage<CMsgTEWorldDecal>((msg) =>
             {   
-                Console.WriteLine("Blocking blood message");
                 msg.Recipients.RemoveAllPlayers();
                 return HookResult.Stop;
             });
@@ -257,7 +256,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         {
             _sparksHookGuid = Core.NetMessage.HookServerMessage<CMsgTEEffectDispatch>((msg) =>
             {
-                Console.WriteLine("Blocking headshot sparks message");
                 msg.Recipients.RemoveAllPlayers();
                 return HookResult.Stop;
             });
