@@ -21,7 +21,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     public bool BlockChatWheel { get; set; } = false;
     public bool BlockPing { get; set; } = false;
     public List<string> BlockedCommands { get; set; } = []; // Case Sensitive
-    public string BlockedCommandsWhitelist { get; set; } = ""; // Flags
 
     // === Hide ===
     public bool HideRadar { get; set; } = false;
@@ -39,7 +38,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     public bool DisableC4 { get; set; } = false;
     public bool DisableCameraSpectator { get; set; } = false;
     public byte DisableAimPunch { get; set; } = 0; // 0 = No, 1 = Yes, 2 = Togglable (default ON), 3 = Togglable (default OFF)
-    public List<string> DisableAimPunch_Flags { get; set; } = []; // Flags for togglable
 
     // === Sounds ===
     public byte SoundsMuteMVPMusic { get; set; } = 0; // 0 = No, 1 = Yes, 2 = MVP + Round End Music
@@ -510,10 +508,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     {
       Core.Engine.ExecuteCommand("sv_ignoregrenaderadio 1");
     }
-    if (cfg.BlockedCommandsWhitelist.Length > 0)
-    {
-      // TODO
-    }
     if (cfg.HideRadar)
     {
       Core.Engine.ExecuteCommand("sv_disable_radar 1");
@@ -545,10 +539,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     if (cfg.DisableCameraSpectator)
     {
       Core.Engine.ExecuteCommand("sv_disable_observer_interpolation true");
-    }
-    if (cfg.DisableAimPunch_Flags.Count > 0)
-    {
-      // TODO
     }
     if (cfg.SoundsMuteFootsteps)
     {

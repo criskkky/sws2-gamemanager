@@ -59,7 +59,6 @@ Set of useful features to manage various aspects of your CS2 server gameplay exp
 | BlockChatWheel | bool | false | Blocks chat wheel commands |
 | BlockPing | bool | false | Blocks ping commands |
 | BlockedCommands | List<string> | [] | List of commands to block (case sensitive) |
-| BlockedCommandsWhitelist | string | "" | Flags for whitelisting blocked commands |
 
 ### Hide
 | Option | Type | Default | Description |
@@ -81,7 +80,6 @@ Set of useful features to manage various aspects of your CS2 server gameplay exp
 | DisableC4 | bool | false | Disables C4 planting |
 | DisableCameraSpectator | bool | false | Disables spectator camera |
 | DisableAimPunch | byte | 0 | 0 = No, 1 = Yes, 2 = Togglable (default ON), 3 = Togglable (default OFF) |
-| DisableAimPunch_Flags | List<string> | [] | Flags for togglable aim punch |
 
 ### Sounds
 | Option | Type | Default | Description |
