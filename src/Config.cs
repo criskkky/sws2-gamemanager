@@ -297,7 +297,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     if (_config?.DisableAimPunch == 2 || _config?.DisableAimPunch == 3)
     {
       _aimPunchEnabled = _config.DisableAimPunch == 2; // true for 2 (default ON), false for 3 (default OFF)
-      _toggleAimPunchCommandGuid = Core.Command.RegisterCommand("toggleaimpunch", (context) =>
+      _toggleAimPunchCommandGuid = Core.Command.RegisterCommand("ap", (context) =>
       {
         _aimPunchEnabled = !_aimPunchEnabled;
         context.Reply($"Aim punch {(_aimPunchEnabled ? "enabled" : "disabled")}.");
