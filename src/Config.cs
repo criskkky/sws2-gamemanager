@@ -275,14 +275,19 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
 
         if (_config.DisableAimPunch == 1 || (_config.DisableAimPunch >= 2 && _aimPunchEnabled))
         {
-          var VictimPawn = Core.PlayerManager.GetPlayer(@event.Victim).PlayerPawn;
-
-          if (VictimPawn != null && VictimPawn.IsValid)
+          Core.Scheduler.NextTick(() =>
           {
-            @event.AimPunchX = 0;
-            @event.AimPunchY = 0;
-            @event.AimPunchZ = 0;
-          }
+            var attacker = Core.PlayerManager.GetPlayer(@event.Attacker);
+            if (attacker != null && attacker.IsValid)
+            {
+              var attackerPawn = attacker.PlayerPawn;
+              if (attackerPawn != null)
+              {
+                attackerPawn.AimPunchAngle = new QAngle(0, 0, 0);
+                attackerPawn.AimPunchAngleUpdated();
+              }
+            }
+          });
         }
         return HookResult.Continue;
       });
