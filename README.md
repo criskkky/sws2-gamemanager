@@ -28,11 +28,12 @@ Set of useful features to manage various aspects of your CS2 server gameplay exp
 </ul>
 
 ## Features
-- **Blockers**: Block radio commands, bot radio chatter, grenade radio messages, chat wheel, ping, and custom commands.
-- **Hide Elements**: Hide radar, killfeed (full or own kills only), blood effects, headshot sparks, teammate headtags (with distance options), corpses (instantly or fade out), and player legs.
-- **Disable Features**: Disable fall damage, sv_cheats, C4 planting, spectator camera, and aim punch (with togglable options).
-- **Sound Control**: Mute MVP music, footsteps, and jump landing sounds.
-- **Message Filtering**: Ignore HUD messages for bomb planted, teammate attacks, awards money, player saved you, chicken killed, join team, planting/defusing bomb, and disconnects.
+- **Optimized Performance**: The plugin registers hooks dynamically and processes only the features you enable, reducing overhead and ensuring efficient resource usage. 
+- **Blockers**: Restrict the use of specific in-game actions, as detailed in the [Blockers](#blockers) section. 
+- **Hide Elements**: Control the visibility of various game components, as detailed in the [Hide](#hide) section. 
+- **Disable Features**: Force-disable selected game functionalities, as detailed in the [Disable](#disable) section. 
+- **Sound Control**: Mute or disable specific in-game sounds, as detailed in the [Sounds](#sounds) section.
+- **Message Filtering**: Suppress default HUD messages, as detailed in the [Default MSGS](#default-msgs) section.
 
 ## Screenshots
 > No screenshots available yet.
