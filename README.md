@@ -9,8 +9,7 @@
   Made with ❤️ by <a href="https://github.com/criskkky" rel="noopener noreferrer" target="_blank">criskkky</a><br/>
 </div>
 
-Set of useful features to manage various aspects of your CS2 server gameplay experience.
-Setup your game as you want.
+Set of useful features to manage various aspects of your CS2 server gameplay experience. <br/>Setup your game as you want.
 
 ## Download Shortcuts
 <ul>
