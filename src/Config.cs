@@ -37,7 +37,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     public bool DisableSVCheats { get; set; } = false;
     public bool DisableC4 { get; set; } = false;
     public bool DisableCameraSpectator { get; set; } = false;
-    public byte DisableAimPunch { get; set; } = 0; // 0 = No, 1 = Yes, 2 = Togglable (default ON), 3 = Togglable (default OFF)
 
     // === Sounds ===
     public byte SoundsMuteMVPMusic { get; set; } = 0; // 0 = No, 1 = Yes, 2 = MVP + Round End Music
@@ -54,7 +53,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     public bool IgnorePlantingBombMessages { get; set; } = false;
     public bool IgnoreDefusingBombMessages { get; set; } = false;
     public bool IgnoreDisconnectMessages { get; set; } = false;
-
   }
 
   private ConfigModel? _config;
@@ -65,9 +63,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
   private Guid? _bloodHookGuid;
   private Guid? _sparksHookGuid;
   private Guid? _legsHookGuid;
-  private Guid? _aimPunchHookGuid;
-  private Guid? _toggleAimPunchCommandGuid;
-  private bool _aimPunchEnabled;
   private Guid? _mvpMusicHookGuid;
   private Guid? _ignoreBombPlantedHUDMessagesHookGuid;
   private Guid? _ignoreTeammateAttackMessagesHookGuid;
@@ -258,55 +253,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
           }
         }
         return HookResult.Continue;
-      });
-    }
-
-    // --- Handle Hook Creation: Aim Punch ---
-    if (_aimPunchHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_aimPunchHookGuid.Value);
-      _aimPunchHookGuid = null;
-    }
-    if (_config?.DisableAimPunch > 0)
-    {
-      _aimPunchHookGuid = Core.GameEvent.HookPre<EventBulletDamage>(@event =>
-      {
-        if (_config == null || _config.DisableAimPunch == 0) return HookResult.Continue;
-
-        if (_config.DisableAimPunch == 1 || (_config.DisableAimPunch >= 2 && _aimPunchEnabled))
-        {
-          Core.Scheduler.NextTick(() =>
-          {
-            var attacker = Core.PlayerManager.GetPlayer(@event.Attacker);
-            if (attacker != null && attacker.IsValid)
-            {
-              var attackerPawn = attacker.PlayerPawn;
-              if (attackerPawn != null)
-              {
-                Console.WriteLine($"[Debug] Resetting Aim Punch for PlayerID: {attacker.PlayerID}");
-                attackerPawn.AimPunchAngle = new QAngle(0, 0, 0);
-                attackerPawn.AimPunchAngleUpdated();
-              }
-            }
-          });
-        }
-        return HookResult.Continue;
-      });
-    }
-
-    // --- Handle Command Creation: Toggle Aim Punch ---
-    if (_toggleAimPunchCommandGuid.HasValue)
-    {
-      Core.Command.UnregisterCommand(_toggleAimPunchCommandGuid.Value);
-      _toggleAimPunchCommandGuid = null;
-    }
-    if (_config?.DisableAimPunch == 2 || _config?.DisableAimPunch == 3)
-    {
-      _aimPunchEnabled = _config.DisableAimPunch == 2; // true for 2 (default ON), false for 3 (default OFF)
-      _toggleAimPunchCommandGuid = Core.Command.RegisterCommand("ap", (context) =>
-      {
-        _aimPunchEnabled = !_aimPunchEnabled;
-        context.Reply($"Aim punch {(_aimPunchEnabled ? "enabled" : "disabled")}.");
       });
     }
 

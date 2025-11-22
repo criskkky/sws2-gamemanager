@@ -80,7 +80,6 @@ Set of useful features to manage various aspects of your CS2 server gameplay exp
 | DisableSVCheats | bool | false | Disables sv_cheats |
 | DisableC4 | bool | false | Disables C4 planting |
 | DisableCameraSpectator | bool | false | Disables spectator camera |
-| DisableAimPunch | byte | 0 | 0 = No, 1 = Yes, 2 = Togglable (default ON), 3 = Togglable (default OFF) |
 
 ### Sounds
 | Option | Type | Default | Description |
