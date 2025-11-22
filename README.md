@@ -1,10 +1,15 @@
+<div align="center">
+
 # [SwiftlyS2] GameManager
 
 [![GitHub Release](https://img.shields.io/github/v/release/criskkky/sws2-gamemanager?color=FFFFFF&style=flat-square)](https://github.com/criskkky/sws2-gamemanager/releases/latest)
 [![GitHub Issues](https://img.shields.io/github/issues/criskkky/sws2-gamemanager?color=FF0000&style=flat-square)](https://github.com/criskkky/sws2-gamemanager/issues)
 [![GitHub Downloads](https://img.shields.io/github/downloads/criskkky/sws2-gamemanager/total?color=blue&style=flat-square)](https://github.com/criskkky/sws2-gamemanager/releases)
-[![GitHub Stars](https://img.shields.io/github/stars/criskkky/sws2-gamemanager?style=social)](https://github.com/criskkky/sws2-gamemanager/stargazers)
+[![GitHub Stars](https://img.shields.io/github/stars/criskkky/sws2-gamemanager?style=social)](https://github.com/criskkky/sws2-gamemanager/stargazers)<br/>
+  Made with ❤️ by <a href="https://github.com/criskkky" rel="noopener noreferrer" target="_blank">criskkky</a><br/>
+</div>
 
+Set of useful features to manage various aspects of your CS2 server gameplay experience.
 Setup your game as you want.
 
 ## Download Shortcuts
@@ -130,10 +135,3 @@ Feel free to [open an issue](https://github.com/criskkky/sws2-gamemanager/issues
 
 ## Contribution Guidelines
 Contributions are welcome only if they align with the plugin's purpose. For major changes, please open an issue first to discuss what you would like to change.
-
----
-<div align="center">
-  <p>
-  Made with ❤️ by <a href="https://github.com/criskkky" rel="noopener noreferrer" target="_blank">criskkky</a>
-  </p>
-</div>
