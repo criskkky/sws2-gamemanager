@@ -57,43 +57,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     public bool IgnoreDefusingBombMessages { get; set; } = false;
     public bool IgnoreDisconnectMessages { get; set; } = false;
 
-    // === Auto Clean Dropped Weapons ===
-    public bool AutoClean_Enable { get; set; } = false;
-    public int AutoClean_Timer { get; set; } = 10; // Seconds 1-999
-    public int AutoClean_MaxWeaponsOnGround { get; set; } = 5; // Start cleaning when exceeding this number
-    public List<string> AutoClean_TheseDroppedWeaponsOnly { get; set; } = []; // If empty, clean all
-
-    /*
-    Weapons List Reference:
-        A: AWP, G3SG1, SCAR-20, SSG 08
-        B: AK-47, AUG, FAMAS, Galil, M4 variants
-        C: M249, Negev
-        D: Mag-7, Nova, Sawed-off, XM1014
-        E: Bizon, MAC-10, MP5, MP7, MP9, P90, UMP-45
-        F: All pistols
-        G: All grenades
-        H: Defuse kits
-        I: Zeus
-        J: Healthshot
-        K: Knives
-    */
-
   }
-
-  private static readonly Dictionary<string, List<string>> WeaponCategories = new(StringComparer.OrdinalIgnoreCase)
-  {
-    ["A"] = ["weapon_awp", "weapon_g3sg1", "weapon_scar20", "weapon_ssg08"],
-    ["B"] = ["weapon_ak47", "weapon_aug", "weapon_famas", "weapon_galilar", "weapon_m4a1", "weapon_m4a1_silencer"],
-    ["C"] = ["weapon_m249", "weapon_negev"],
-    ["D"] = ["weapon_mag7", "weapon_nova", "weapon_sawedoff", "weapon_xm1014"],
-    ["E"] = ["weapon_bizon", "weapon_mac10", "weapon_mp5sd", "weapon_mp7", "weapon_mp9", "weapon_p90", "weapon_ump45"],
-    ["F"] = ["weapon_deagle", "weapon_elite", "weapon_fiveseven", "weapon_glock", "weapon_hkp2000", "weapon_p250", "weapon_tec9", "weapon_usp_silencer", "weapon_cz75a", "weapon_revolver"],
-    ["G"] = ["weapon_flashbang", "weapon_hegrenade", "weapon_smokegrenade", "weapon_molotov", "weapon_incgrenade", "weapon_decoy"],
-    ["H"] = ["item_defuser"],
-    ["I"] = ["weapon_taser"],
-    ["J"] = ["weapon_healthshot"],
-    ["K"] = ["weapon_knife", "weapon_knife_t"]
-  };
 
   private ConfigModel? _config;
 
@@ -593,84 +557,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     if (cfg.SoundsMuteJumpLand)
     {
       Core.Engine.ExecuteCommand("sv_min_jump_landing_sound 999999");
-    }
-    if (cfg.AutoClean_Enable)
-    {
-      Core.Scheduler.NextTick(() =>
-      {
-        Core.Scheduler.DelayBySeconds(cfg.AutoClean_Timer, () =>
-        {
-          var selectedWeapons = cfg.AutoClean_TheseDroppedWeaponsOnly
-                    .Select(w => w.Trim().ToLower())
-                    .ToList();
-
-          var allWeaponsToClean = new HashSet<string>();
-
-          if (selectedWeapons.Contains("any") || selectedWeapons.Count == 0)
-          {
-            foreach (var category in WeaponCategories.Values)
-            {
-              allWeaponsToClean.UnionWith(category);
-            }
-          }
-          else
-          {
-            foreach (var weaponKey in selectedWeapons)
-            {
-              if (WeaponCategories.ContainsKey(weaponKey.ToUpper()))
-              {
-                allWeaponsToClean.UnionWith(WeaponCategories[weaponKey.ToUpper()]);
-              }
-              else
-              {
-                allWeaponsToClean.Add(weaponKey.ToLower());
-              }
-            }
-          }
-
-          var droppedWeapons = new List<CEntityInstance>();
-
-          foreach (var weaponClass in allWeaponsToClean)
-          {
-            var entities = Core.EntitySystem.GetAllEntities().Where(e => e.DesignerName == weaponClass);
-            foreach (var entity in entities)
-            {
-              if (entity != null && entity.IsValid) // Assuming dropped if no owner check available
-              {
-                droppedWeapons.Add(entity);
-              }
-            }
-          }
-
-          if (droppedWeapons.Count > cfg.AutoClean_MaxWeaponsOnGround)
-          {
-            int weaponsToRemove = droppedWeapons.Count - cfg.AutoClean_MaxWeaponsOnGround;
-
-            for (int i = 0; i < weaponsToRemove && droppedWeapons.Count > 0; i++)
-            {
-              int weaponToRemoveIndex = droppedWeapons.Count == 1 ? 0 : Random.Shared.Next(0, droppedWeapons.Count);
-
-              var weaponToRemove = droppedWeapons[weaponToRemoveIndex];
-              if (weaponToRemove == null || !weaponToRemove.IsValid) continue;
-
-              weaponToRemove.AcceptInput("Kill", "");
-              droppedWeapons.RemoveAt(weaponToRemoveIndex);
-            }
-          }
-        });
-      });
-    }
-    if (cfg.AutoClean_Timer < 1 || cfg.AutoClean_Timer > 999)
-    {
-      // Implement validation for auto clean timer logic here
-    }
-    if (cfg.AutoClean_MaxWeaponsOnGround > 0)
-    {
-      // Implement auto clean max weapons on ground logic here
-    }
-    if (cfg.AutoClean_TheseDroppedWeaponsOnly.Count > 0)
-    {
-      // Implement auto clean specific dropped weapons logic here
     }
   }
 }

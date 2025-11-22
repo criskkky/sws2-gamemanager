@@ -124,28 +124,6 @@ public static class Helper
       "#Cstrike_TitlesTXT_Planting_Bomb"
   ];
 
-  public static readonly Dictionary<string, string[]> WeaponCategories;
-
-  // Constructor Estático
-  static Helper()
-  {
-    WeaponCategories = new Dictionary<string, string[]>
-        {
-            {"A", ["weapon_awp", "weapon_g3sg1", "weapon_scar20", "weapon_ssg08"]},
-            {"B", ["weapon_ak47", "weapon_aug", "weapon_famas", "weapon_galilar", "weapon_m4a1_silencer", "weapon_m4a1", "weapon_sg556"]},
-            {"C", ["weapon_m249", "weapon_negev"]},
-            {"D", ["weapon_mag7", "weapon_nova", "weapon_sawedoff", "weapon_xm1014"]},
-            {"E", ["weapon_bizon", "weapon_mac10", "weapon_mp5sd", "weapon_mp7", "weapon_mp9", "weapon_p90", "weapon_ump45"]},
-            {"F", ["weapon_cz75a", "weapon_deagle", "weapon_elite", "weapon_fiveseven", "weapon_glock", "weapon_hkp2000", "weapon_p250", "weapon_revolver", "weapon_tec9", "weapon_usp_silencer"]},
-            {"G", ["weapon_smokegrenade", "weapon_hegrenade", "weapon_flashbang", "weapon_decoy", "weapon_molotov", "weapon_incgrenade"]},
-            {"H", ["item_defuser", "item_cutters"]},
-            {"I", ["weapon_taser"]},
-            {"J", ["weapon_healthshot"]},
-            {"K", ["weapon_knife", "weapon_knife_t"]}
-        };
-    WeaponCategories["ANY"] = WeaponCategories.Values.SelectMany(x => x).ToArray();
-  }
-
   public static HookResult FilterMessageByParams(CUserMessageTextMsg msg, IEnumerable<string> filterStrings)
   {
     foreach (var param in msg.Param)

@@ -33,7 +33,6 @@ Set of useful features to manage various aspects of your CS2 server gameplay exp
 - **Disable Features**: Disable fall damage, sv_cheats, C4 planting, spectator camera, and aim punch (with togglable options).
 - **Sound Control**: Mute MVP music, footsteps, and jump landing sounds.
 - **Message Filtering**: Ignore HUD messages for bomb planted, teammate attacks, awards money, player saved you, chicken killed, join team, planting/defusing bomb, and disconnects.
-- **Auto Clean Weapons**: Automatically clean dropped weapons on the ground based on timer and limits, with options for specific weapon categories.
 
 ## Screenshots
 > No screenshots available yet.
@@ -44,7 +43,7 @@ Set of useful features to manage various aspects of your CS2 server gameplay exp
 
 1. Download and extract the latest plugin version into your `swiftlys2/plugins` folder.
 2. Perform an initial run in order to allow file generation.
-3. Generated file will be located at: `swiftlys2/plugins/GameManager/configs/config.jsonc`
+3. Generated file will be located at: `swiftlys2/configs/plugins/GameManager/config.jsonc`
 4. Edit the configuration file as needed.
 5. Enjoy!
 
@@ -103,33 +102,11 @@ Set of useful features to manage various aspects of your CS2 server gameplay exp
 | IgnoreDefusingBombMessages | bool | false | Ignores defusing bomb messages |
 | IgnoreDisconnectMessages | bool | false | Ignores disconnect messages |
 
-### Auto Clean Dropped Weapons
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| AutoClean_Enable | bool | false | Enables auto cleaning of dropped weapons |
-| AutoClean_Timer | int | 10 | Timer in seconds (1-999) |
-| AutoClean_MaxWeaponsOnGround | int | 5 | Max weapons on ground before cleaning |
-| AutoClean_TheseDroppedWeaponsOnly | List<string> | [] | Specific weapons to clean (if empty, clean all) |
-
-Weapons List Reference:
-- A: AWP, G3SG1, SCAR-20, SSG 08
-- B: AK-47, AUG, FAMAS, Galil, M4 variants
-- C: M249, Negev
-- D: Mag-7, Nova, Sawed-off, XM1014
-- E: Bizon, MAC-10, MP5, MP7, MP9, P90, UMP-45
-- F: All pistols
-- G: All grenades
-- H: Defuse kits
-- I: Zeus
-- J: Healthshot
-- K: Knives
-1. On plugin load, it checks for the existence of the `MapConfigs` folder.
-2. If the folder does not exist, it creates it automatically.
-3. After a map change or server start, it checks for a configuration file matching the current map name.
-4. If a matching file is found, it executes that configuration file.
-5. If no matching file is found, it checks for a common prefix configuration file (e.g., `de_.cfg` for all de_ maps).
-6. If a common prefix file is found, it executes that file.
-7. If neither file is found, no configuration is executed.
+## Backend Logic (How It Works)
+1. On plugin load, it checks for the existence of the configuration file. If it doesn't exist, a default one is created.
+2. The plugin reads the configuration file and applies the settings accordingly.
+3. Various hooks and event listeners are set up to monitor player actions and game events, applying the configured restrictions and modifications in real-time.
+4. Depending on the settings the plugin will perform your desired actions.
 
 ## Support and Feedback
 Feel free to [open an issue](https://github.com/criskkky/sws2-gamemanager/issues/new/choose) for any bugs or feature requests. If it's all working fine, consider starring the repository to show your support!
