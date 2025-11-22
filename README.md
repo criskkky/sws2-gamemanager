@@ -6,7 +6,8 @@
 [![GitHub Issues](https://img.shields.io/github/issues/criskkky/sws2-gamemanager?color=FF0000&style=flat-square)](https://github.com/criskkky/sws2-gamemanager/issues)
 [![GitHub Downloads](https://img.shields.io/github/downloads/criskkky/sws2-gamemanager/total?color=blue&style=flat-square)](https://github.com/criskkky/sws2-gamemanager/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/criskkky/sws2-gamemanager?style=social)](https://github.com/criskkky/sws2-gamemanager/stargazers)<br/>
-  Made with ❤️ by <a href="https://github.com/criskkky" rel="noopener noreferrer" target="_blank">criskkky</a><br/>
+  <sub>Made with ❤️ by <a href="https://github.com/criskkky" rel="noopener noreferrer" target="_blank">criskkky</a></sub>
+  <br/>
 </div>
 
 ## Overview
