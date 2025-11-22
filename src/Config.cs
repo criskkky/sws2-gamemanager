@@ -39,7 +39,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     public bool DisableCameraSpectator { get; set; } = false;
 
     // === Sounds ===
-    public byte SoundsMuteMVPMusic { get; set; } = 0; // 0 = No, 1 = Yes, 2 = MVP + Round End Music
     public bool SoundsMuteFootsteps { get; set; } = false;
     public bool SoundsMuteJumpLand { get; set; } = false;
 
@@ -255,31 +254,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         return HookResult.Continue;
       });
     }
-
-    // --- Handle Hook Creation: MVPMusic ---
-    if (_mvpMusicHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_mvpMusicHookGuid.Value);
-      _mvpMusicHookGuid = null;
-    }
-    if (_config?.SoundsMuteMVPMusic > 0)
-    {
-      _mvpMusicHookGuid = Core.GameEvent.HookPre<EventRoundMvp>(@event =>
-      {
-        if (_config == null || _config.SoundsMuteMVPMusic == 0) return HookResult.Continue;
-
-        if (_config.SoundsMuteMVPMusic == 1)
-        {
-          @event.MusickItID = 0;
-        }
-        else if (_config.SoundsMuteMVPMusic == 2)
-        {
-          @event.NoMusic = 1;
-        }
-        return HookResult.Continue;
-      });
-    }
-
+    
     // --- Handle Hook Creation: Ignore Bomb Planted HUD Messages ---
     if (_ignoreBombPlantedHUDMessagesHookGuid.HasValue)
     {
