@@ -283,6 +283,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
               var attackerPawn = attacker.PlayerPawn;
               if (attackerPawn != null)
               {
+                Console.WriteLine($"[Debug] Resetting Aim Punch for PlayerID: {attacker.PlayerID}");
                 attackerPawn.AimPunchAngle = new QAngle(0, 0, 0);
                 attackerPawn.AimPunchAngleUpdated();
               }

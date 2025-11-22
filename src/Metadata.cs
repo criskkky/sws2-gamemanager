@@ -8,6 +8,6 @@ namespace GameManager;
     Name = "GameManager",
     Author = "criskkky",
     Description = "Setup your game as you want.",
-    Website = "https://github.com/criskkky/GameManager"
+    Website = "https://github.com/criskkky/sws2-gamemanager"
 )]
 public partial class GameManager;
