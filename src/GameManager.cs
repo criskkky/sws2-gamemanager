@@ -40,15 +40,22 @@ public partial class GameManager : BasePlugin
     _configMonitor.OnChange(newConfig =>
     {
       _config = newConfig;
-      // Reload everything on config change
+      // Reload everything on config change on next tick (main thread)
+      Core.Scheduler.NextTick(() =>
+      {
+        RegisterNeededHooks();
+        ExecuteNativeCommands();
+        CheckClientCommands();
+      });
+    });
+
+    // Execute on next tick to ensure we're on the main thread
+    Core.Scheduler.NextTick(() =>
+    {
       RegisterNeededHooks();
       ExecuteNativeCommands();
       CheckClientCommands();
     });
-
-    RegisterNeededHooks();
-    ExecuteNativeCommands();
-    CheckClientCommands();
   }
 
   public override void Unload()
