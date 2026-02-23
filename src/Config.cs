@@ -175,7 +175,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         if (_config?.HideKillFeed == 1)
         {
           @event.DontBroadcast = true;
-          return HookResult.Continue;
+          return HookResult.Handled;
         }
         else if (_config?.HideKillFeed == 2)
         {
@@ -273,7 +273,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       _ignoreBombPlantedHUDMessagesHookGuid = Core.GameEvent.HookPre<EventBombPlanted>(@event =>
       {
         @event.DontBroadcast = true;
-        return HookResult.Continue;
+        return HookResult.Handled;
       });
     }
 
@@ -391,7 +391,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       _ignoreJoinTeamMessagesHookGuid = Core.GameEvent.HookPre<EventPlayerTeam>(@event =>
       {
         @event.DontBroadcast = true;
-        return HookResult.Continue;
+        return HookResult.Handled;
       });
     }
 
@@ -406,7 +406,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
       _ignoreDisconnectMessagesHookGuid = Core.GameEvent.HookPre<EventPlayerDisconnect>(@event =>
       {
         @event.DontBroadcast = true;
-        return HookResult.Continue;
+        return HookResult.Handled;
       });
     }
   }
