@@ -6,6 +6,7 @@ using SwiftlyS2.Shared.ProtobufDefinitions;
 using SwiftlyS2.Shared.Players;
 using SwiftlyS2.Shared.Natives;
 using SwiftlyS2.Shared.SchemaDefinitions;
+using SwiftlyS2.Shared.Sounds;
 
 namespace GameManager;
 
@@ -41,6 +42,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     // === Sounds ===
     public bool SoundsMuteFootsteps { get; set; } = false;
     public bool SoundsMuteJumpLand { get; set; } = false;
+    public byte SoundsMuteMVPMusic { get; set; } = 0; // 0 = No, 1 = Mute MVP music only, 2 = Stop all music
 
     // === Default MSGS ===
     public bool IgnoreBombPlantedHUDMessages { get; set; } = false;
@@ -68,15 +70,78 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
   private Guid? _ignoreRadioTextMessagesHookGuid;
   private Guid? _ignoreJoinTeamMessagesHookGuid;
   private Guid? _ignoreDisconnectMessagesHookGuid;
+  private Guid? _mvpMusicHookGuid;
 
-  private void RegisterNeededHooks()
+  private void CleanupHooks()
   {
-    // --- Handle Hook Creation: Radio ---
     if (_radioHookGuid.HasValue)
     {
       Core.Command.UnhookClientCommand(_radioHookGuid.Value);
       _radioHookGuid = null;
     }
+    if (_deathEventHookGuid.HasValue)
+    {
+      Core.GameEvent.Unhook(_deathEventHookGuid.Value);
+      _deathEventHookGuid = null;
+    }
+    if (_bloodHookGuid.HasValue)
+    {
+      Core.NetMessage.Unhook(_bloodHookGuid.Value);
+      _bloodHookGuid = null;
+    }
+    if (_sparksHookGuid.HasValue)
+    {
+      Core.NetMessage.Unhook(_sparksHookGuid.Value);
+      _sparksHookGuid = null;
+    }
+    if (_legsHookGuid.HasValue)
+    {
+      Core.NetMessage.Unhook(_legsHookGuid.Value);
+      _legsHookGuid = null;
+    }
+    if (_ignoreBombPlantedHUDMessagesHookGuid.HasValue)
+    {
+      Core.NetMessage.Unhook(_ignoreBombPlantedHUDMessagesHookGuid.Value);
+      _ignoreBombPlantedHUDMessagesHookGuid = null;
+    }
+    if (_ignoreTextMessagesHookGuid.HasValue)
+    {
+      Core.NetMessage.Unhook(_ignoreTextMessagesHookGuid.Value);
+      _ignoreTextMessagesHookGuid = null;
+    }
+    if (_ignoreHintMessagesHookGuid.HasValue)
+    {
+      Core.NetMessage.Unhook(_ignoreHintMessagesHookGuid.Value);
+      _ignoreHintMessagesHookGuid = null;
+    }
+    if (_ignoreRadioTextMessagesHookGuid.HasValue)
+    {
+      Core.NetMessage.Unhook(_ignoreRadioTextMessagesHookGuid.Value);
+      _ignoreRadioTextMessagesHookGuid = null;
+    }
+    if (_ignoreJoinTeamMessagesHookGuid.HasValue)
+    {
+      Core.GameEvent.Unhook(_ignoreJoinTeamMessagesHookGuid.Value);
+      _ignoreJoinTeamMessagesHookGuid = null;
+    }
+    if (_ignoreDisconnectMessagesHookGuid.HasValue)
+    {
+      Core.GameEvent.Unhook(_ignoreDisconnectMessagesHookGuid.Value);
+      _ignoreDisconnectMessagesHookGuid = null;
+    }
+    if (_mvpMusicHookGuid.HasValue)
+    {
+      Core.GameEvent.Unhook(_mvpMusicHookGuid.Value);
+      _mvpMusicHookGuid = null;
+    }
+  }
+
+  private void RegisterNeededHooks()
+  {
+    // Clean up all existing hooks before re-registering
+    CleanupHooks();
+
+    // --- Handle Hook Creation: Radio ---
     if (_config?.BlockRadio == true)
     {
       _radioHookGuid = Core.Command.HookClientCommand((playerId, commandLine) =>
@@ -91,11 +156,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Death Event ---
-    if (_deathEventHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_deathEventHookGuid.Value);
-      _deathEventHookGuid = null;
-    }
     if (_config?.HideKillFeed > 0 || _config?.HideCorpses > 0)
     {
       _deathEventHookGuid = Core.GameEvent.HookPre<EventPlayerDeath>(@event =>
@@ -200,11 +260,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Blood ---
-    if (_bloodHookGuid.HasValue)
-    {
-      Core.NetMessage.Unhook(_bloodHookGuid.Value);
-      _bloodHookGuid = null;
-    }
     if (_config?.HideBlood == true)
     {
       _bloodHookGuid = Core.NetMessage.HookServerMessage<CMsgTEWorldDecal>((msg) =>
@@ -215,11 +270,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Headshot Sparks ---
-    if (_sparksHookGuid.HasValue)
-    {
-      Core.NetMessage.Unhook(_sparksHookGuid.Value);
-      _sparksHookGuid = null;
-    }
     if (_config?.HideHeadshotSparks == true)
     {
       _sparksHookGuid = Core.NetMessage.HookServerMessage<CMsgTEEffectDispatch>((msg) =>
@@ -230,11 +280,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Legs ---
-    if (_legsHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_legsHookGuid.Value);
-      _legsHookGuid = null;
-    }
     if (_config?.HideLegs == true || _config?.HideLegs == false)
     {
       _legsHookGuid = Core.GameEvent.HookPost<EventPlayerSpawn>(@event =>
@@ -263,11 +308,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Ignore Bomb Planted HUD Messages ---
-    if (_ignoreBombPlantedHUDMessagesHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_ignoreBombPlantedHUDMessagesHookGuid.Value);
-      _ignoreBombPlantedHUDMessagesHookGuid = null;
-    }
     if (_config?.IgnoreBombPlantedHUDMessages == true)
     {
       _ignoreBombPlantedHUDMessagesHookGuid = Core.GameEvent.HookPre<EventBombPlanted>(@event =>
@@ -278,11 +318,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Ignore Text Messages (Unified for CUserMessageTextMsg) ---
-    if (_ignoreTextMessagesHookGuid.HasValue)
-    {
-      Core.NetMessage.Unhook(_ignoreTextMessagesHookGuid.Value);
-      _ignoreTextMessagesHookGuid = null;
-    }
     if (_config?.IgnoreAwardsMoneyMessages == true || _config?.IgnorePlayerSavedYouMessages == true || _config?.IgnoreChickenKilledMessages == true || _config?.IgnorePlantingBombMessages == true || _config?.IgnoreDefusingBombMessages == true || _config?.IgnoreTeammateAttackMessages == true)
     {
       _ignoreTextMessagesHookGuid = Core.NetMessage.HookServerMessage<CUserMessageTextMsg>((msg) =>
@@ -334,11 +369,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Ignore Hint Messages (for CCSUsrMsg_HintText) ---
-    if (_ignoreHintMessagesHookGuid.HasValue)
-    {
-      Core.NetMessage.Unhook(_ignoreHintMessagesHookGuid.Value);
-      _ignoreHintMessagesHookGuid = null;
-    }
     if (_config?.IgnoreTeammateAttackMessages == true)
     {
       _ignoreHintMessagesHookGuid = Core.NetMessage.HookClientMessage<CCSUsrMsg_HintText>((msg, playerId) =>
@@ -355,11 +385,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Ignore Radio Text Messages (for CCSUsrMsg_RadioText) ---
-    if (_ignoreRadioTextMessagesHookGuid.HasValue)
-    {
-      Core.NetMessage.Unhook(_ignoreRadioTextMessagesHookGuid.Value);
-      _ignoreRadioTextMessagesHookGuid = null;
-    }
     if (_config?.IgnorePlantingBombMessages == true || _config?.IgnoreDefusingBombMessages == true)
     {
       _ignoreRadioTextMessagesHookGuid = Core.NetMessage.HookServerMessage<CCSUsrMsg_RadioText>((msg) =>
@@ -381,11 +406,6 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Ignore Join Team Messages ---
-    if (_ignoreJoinTeamMessagesHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_ignoreJoinTeamMessagesHookGuid.Value);
-      _ignoreJoinTeamMessagesHookGuid = null;
-    }
     if (_config?.IgnoreJoinTeamMessages == true)
     {
       _ignoreJoinTeamMessagesHookGuid = Core.GameEvent.HookPre<EventPlayerTeam>(@event =>
@@ -396,17 +416,42 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
     }
 
     // --- Handle Hook Creation: Ignore Disconnect Messages ---
-    if (_ignoreDisconnectMessagesHookGuid.HasValue)
-    {
-      Core.GameEvent.Unhook(_ignoreDisconnectMessagesHookGuid.Value);
-      _ignoreDisconnectMessagesHookGuid = null;
-    }
     if (_config?.IgnoreDisconnectMessages == true)
     {
       _ignoreDisconnectMessagesHookGuid = Core.GameEvent.HookPre<EventPlayerDisconnect>(@event =>
       {
         @event.DontBroadcast = true;
         return HookResult.Handled;
+      });
+    }
+
+    // --- Handle Hook Creation: Mute MVP Music ---
+    if (_config?.SoundsMuteMVPMusic > 0)
+    {
+      _mvpMusicHookGuid = Core.GameEvent.HookPre<EventRoundMvp>(@event =>
+      {
+        if (@event == null || _config?.SoundsMuteMVPMusic < 1) return HookResult.Continue;
+
+        var playerController = @event.UserIdController;
+        var player = @event.UserIdPlayer;
+        if (playerController == null || player == null || player.IsFakeClient) return HookResult.Continue;
+
+        if (_config?.SoundsMuteMVPMusic == 1)
+        {
+          playerController.MusicKitID = 0;
+          playerController.MusicKitIDUpdated();
+        }
+        else if (_config?.SoundsMuteMVPMusic == 2)
+        {
+          using var soundEvent = new SoundEvent()
+          {
+            Name = "StopSoundEvents.StopAllMusic",
+            SourceEntityIndex = -1
+          };
+          soundEvent.Recipients.AddAllPlayers();
+          soundEvent.Emit();
+        }
+        return HookResult.Continue;
       });
     }
   }

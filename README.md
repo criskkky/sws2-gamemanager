@@ -86,6 +86,7 @@ Set of useful features to manage various aspects of your CS2 server gameplay exp
 |--------|------|---------|-------------|
 | SoundsMuteFootsteps | bool | true | Mutes footsteps |
 | SoundsMuteJumpLand | bool | true | Mutes jump landing sounds |
+| SoundsMuteMVPMusic | byte | 1 | 0 = No, 1 = Mute MVP music only, 2 = Stop all music |
 
 ### Default MSGS
 | Option | Type | Example | Description |

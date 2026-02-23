@@ -60,6 +60,7 @@ public partial class GameManager : BasePlugin
 
   public override void Unload()
   {
+    CleanupHooks();
     _serviceProvider?.Dispose();
   }
 
