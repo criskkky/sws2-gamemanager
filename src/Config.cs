@@ -112,13 +112,21 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
             var playerPawn = player.PlayerPawn;
             if (playerPawn != null)
             {
+              // Use CHandle to safely reference the entity across scheduler callbacks
+              var pawnHandle = Core.EntitySystem.GetRefEHandle(playerPawn);
+
               Core.Scheduler.NextTick(() =>
               {
+                // Validate handle before accessing entity
+                if (!pawnHandle.IsValid) return;
+                var pawn = pawnHandle.Value;
+                if (pawn == null) return;
+
                 if (_config?.HideCorpses == 1)
                 {
-                  var currentColor = playerPawn.Render;
-                  playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)0);
-                  playerPawn.RenderUpdated();
+                  var currentColor = pawn.Render;
+                  pawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)0);
+                  pawn.RenderUpdated();
                 }
                 if (_config?.HideCorpses == 2) // Fade out
                 {
@@ -128,22 +136,25 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
                   int steps = (int)Math.Ceiling(duration / interval);
                   float stepAlpha = 255f / steps; // Decremento por step
 
-                  if (!playerPawn.IsValid) return;
-
                   // Get original color and alpha
-                  var currentColor = playerPawn.Render;
+                  var currentColor = pawn.Render;
                   float currentAlpha = currentColor.A;
 
                   // Start recursive fade out with Delay
                   Action fadeAction = null!;
                   fadeAction = () =>
                         {
+                          // Revalidate handle on each callback
+                          if (!pawnHandle.IsValid) return;
+                          var validPawn = pawnHandle.Value;
+                          if (validPawn == null) return;
+
                           // Reduce alpha
                           currentAlpha = Math.Max(0, currentAlpha - stepAlpha);
 
                           // Assign modified color (only alpha changes)
-                          playerPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)currentAlpha);
-                          playerPawn.RenderUpdated();
+                          validPawn.Render = new Color(currentColor.R, currentColor.G, currentColor.B, (byte)currentAlpha);
+                          validPawn.RenderUpdated();
 
                           // If alpha > 0, schedule the next fade
                           if (currentAlpha > 0)
@@ -250,7 +261,7 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
         return HookResult.Continue;
       });
     }
-    
+
     // --- Handle Hook Creation: Ignore Bomb Planted HUD Messages ---
     if (_ignoreBombPlantedHUDMessagesHookGuid.HasValue)
     {
@@ -435,7 +446,8 @@ public partial class GameManager(ISwiftlyCore core) : BasePlugin(core)
 
   private void ExecuteNativeCommands()
   {
-    var cfg = _config!;
+    if (_config == null) return;
+    var cfg = _config;
     if (cfg.BlockBotRadio)
     {
       Core.Engine.ExecuteCommand("bot_chatter off");
