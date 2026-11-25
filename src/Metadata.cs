@@ -4,7 +4,7 @@ namespace GameManager;
 
 [PluginMetadata(
     Id = "GameManager",
-    Version = "1.0.1",
+    Version = "1.0.2",
     Name = "GameManager",
     Author = "criskkky",
     Description = "Setup your game as you want.",
